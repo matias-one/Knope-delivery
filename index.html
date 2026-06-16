@@ -417,7 +417,7 @@
   </div>
 
   <script>
-    const { createApp, ref, computed } = Vue;
+    const { createApp, ref, computed, onMounted } = Vue;
 
     createApp({
       setup() {
@@ -434,7 +434,7 @@
         const order = ref({
           name: '#48209',
           po_number: '98754',
-          created_at: 'June 16, 2026',
+          created_at: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
           note: 'Please pack carefully, items are fragile glassware.',
           metafields: {
             checkoutblocks: {
@@ -474,14 +474,6 @@
             shipping_quantity: 4,
             quantity: 4,
             image: 'https://cdn.shopify.com/s/files/1/0597/6991/3413/files/cropped-cropped-logo-350x90.png?v=1720527155'
-          },
-          {
-            title: 'Brass Taper Candle Holder Classic Pillar Style',
-            variant_title: 'Medium / Brass Finish',
-            sku: 'JAM-BRASS-102',
-            shipping_quantity: 2,
-            quantity: 3,
-            image: ''
           }
         ]);
 
@@ -514,6 +506,50 @@
           window.print();
         };
 
+        // --- AUTOMATION LINK-READER ADDED HERE ---
+        // Runs immediately when the page finishes initializing inside your browser
+        onMounted(() => {
+          const urlParams = new URLSearchParams(window.location.search);
+          
+          // 1. Process Order IDs (Prioritize Shopify reference, fallback to ERP Internal)
+          if (urlParams.has('shopifyOrder') && urlParams.get('shopifyOrder')) {
+            order.value.name = '#' + urlParams.get('shopifyOrder');
+          } else if (urlParams.has('erpOrder') && urlParams.get('erpOrder')) {
+            order.value.name = 'ERP-' + urlParams.get('erpOrder');
+          }
+
+          // 2. Map and append Customer Name to Shipping Block
+          if (urlParams.has('customer')) {
+            shipping_address.value.name = decodeURIComponent(urlParams.get('customer'));
+          }
+
+          // 3. Wipe defaults and clear out the item tables to load incoming ERP products
+          if (urlParams.has('items')) {
+            try {
+              const rawItems = JSON.parse(decodeURIComponent(urlParams.get('items')));
+              
+              if (rawItems && rawItems.length > 0) {
+                // Clear out placeholder setup values
+                line_items_in_shipment.value = [];
+                
+                // Inject each individual line item item securely 
+                rawItems.forEach(item => {
+                  line_items_in_shipment.value.push({
+                    title: item.name || 'Extracted Product Description',
+                    variant_title: '',
+                    sku: item.sku || 'N/A',
+                    shipping_quantity: parseInt(item.qty) || 1,
+                    quantity: parseInt(item.qty) || 1,
+                    image: '' // Fallback empty canvas
+                  });
+                });
+              }
+            } catch (e) {
+              console.error("Error reading encoded incoming ERP items stream:", e);
+            }
+          }
+        });
+
         return {
           shop,
           shop_address,
@@ -534,27 +570,6 @@
       }
     }).mount('#app');
   </script>
-  <script>
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Map URL elements to the form input fields
-    if(urlParams.has('order')) {
-        document.getElementById('order_number_field').value = urlParams.get('order');
-    }
-    if(urlParams.has('customer')) {
-        document.getElementById('customer_name_field').value = urlParams.get('customer');
-    }
-    
-    // Map and inject the Line Items rows instantly
-    if(urlParams.has('items')) {
-        const items = JSON.parse(decodeURIComponent(urlParams.get('items')));
-        items.forEach((item, index) => {
-             // Append rows natively to your item tables without human typing!
-             console.log("Auto-populating line item:", item);
-        });
-    }
-});
-</script>
+
 </body>
 </html>
