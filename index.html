@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hermes Delivery Slip Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f9;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover { background: #2980b9; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .form-grid label { font-weight: bold; display: block; margin-bottom: 5px; }
+    .form-grid input, .form-grid textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .form-grid .full-width { grid-column: 1 / -1; }
+    .item-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 60px 80px 80px 80px;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .item-row input { width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; }
+    .item-header { font-weight: bold; background: #ecf0f1; padding: 5px; border-radius: 4px; }
+    #slip-preview {
+      background: white;
+      padding: 30px;
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      display: none;
+    }
+    #slip-preview.print-ready {
+      display: block;
+    }
+    .delivery-slip {
+      font-family: 'Courier New', monospace;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .delivery-slip .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+    .delivery-slip .field { display: flex; margin: 5px 0; }
+    .delivery-slip .field .label { font-weight: bold; width: 120px; }
+    .delivery-slip .items-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    .delivery-slip .items-table th, .delivery-slip .items-table td { border: 1px solid #333; padding: 4px 8px; text-align: left; }
+    .delivery-slip .items-table th { background: #eee; }
+    .delivery-slip .signature { margin-top: 30px; border-top: 1px solid #333; padding-top: 10px; display: flex; justify-content: space-between; }
+    .delivery-slip .signature .line { border-bottom: 1px solid #333; width: 200px; }
+    @media print {
+      body { background: white; padding: 0; }
+      .section, #controls, .no-print { display: none !important; }
+      #slip-preview { display: block !important; border: none; padding: 20px; }
+      .delivery-slip { font-size: 12px; }
+    }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>🐒 Hermes Delivery Slip Generator</h1>
+
+  <div id="controls" class="section">
+    <p>Paste the raw text from the ERP order page below, or use the StickyMonkey extension to auto‑fill.</p>
+    <textarea id="rawText" placeholder="Paste ERP text here..."></textarea>
+    <button id="parseBtn">Parse & Generate Form</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+
+  <div id="formSection" class="section" style="display:none;">
+    <h2>✏️ Review & Edit</h2>
+    <div class="form-grid">
+      <div>
+        <label>Recipient Name</label>
+        <input id="recipientName" />
+      </div>
+      <div>
+        <label>Phone</label>
+        <input id="phone" />
+      </div>
+      <div class="full-width">
+        <label>Address</label>
+        <textarea id="address" rows="3"></textarea>
+      </div>
+      <div>
+        <label>Ship Via</label>
+        <input id="shipVia" />
+      </div>
+      <div>
+        <label>Shipping On</label>
+        <input id="shippingOn" />
+      </div>
+      <div>
+        <label>Deliver By</label>
+        <input id="deliverBy" />
+      </div>
+      <div>
+        <label>Delivery Fee</label>
+        <input id="deliveryFee" />
+      </div>
+      <div>
+        <label>Order Total</label>
+        <input id="orderTotal" />
+      </div>
+    </div>
+
+    <h3>Items</h3>
+    <div id="itemsContainer">
+      <div class="item-row item-header">
+        <span>Item #</span>
+        <span>Description</span>
+        <span>Qty</span>
+        <span>Unit Price</span>
+        <span>Subtotal</span>
+        <span></span>
+      </div>
+      <!-- items will be inserted here -->
+    </div>
+    <button id="addItemBtn">+ Add Item</button>
+
+    <button id="generateBtn" style="margin-top:20px;">📄 Generate Delivery Slip</button>
+  </div>
+
+  <div id="slip-preview"></div>
+
+  <script>
+    // ------------------------------------------------------------
+    // PARSER – extracts data from the raw ERP text
+    // ------------------------------------------------------------
+    function parseErpText(text) {
+      const data = {
+        recipientName: '',
+        address: '',
+        phone: '',
+        shipVia: '',
+        shippingOn: '',
+        deliverBy: '',
+        items: [],
+        deliveryFee: '',
+        orderTotal: '',
+        // also capture subtotal, tax, etc if needed
+      };
+
+      // Helper: get first match group
+      const getMatch = (regex, str) => {
+        const m = str.match(regex);
+        return m ? m[1].trim() : '';
+      };
+
+      // Extract Shipping Info block
+      const shippingBlock = text.match(/## Shipping Info \[Verify\](.*?)(?=##|\n\n)/s);
+      if (shippingBlock) {
+        const block = shippingBlock[1];
+        const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+        // After "Deliver By Messenger" line, the next line is name, then address lines, then phone
+        const messengerIdx = lines.findIndex(l => l.includes('Deliver By Messenger'));
+        if (messengerIdx !== -1 && lines[messengerIdx+1]) {
+          data.recipientName = lines[messengerIdx+1];
+          // collect address lines until we hit a phone number (starts with +1 or \d{3}-\d{3}-\d{4} etc)
+          let addrLines = [];
+          let phoneFound = false;
+          for (let i = messengerIdx+2; i < lines.length; i++) {
+            const line = lines[i];
+            // crude phone detection: starts with + or has pattern
+            if (line.match(/^\+?\d[\d\s\-()]+/)) {
+              data.phone = line;
+              phoneFound = true;
+              break;
+            } else {
+              addrLines.push(line);
+            }
+          }
+          data.address = addrLines.join('\n');
+        }
+      }
+
+      // Extract Deliver By Messenger block
+      const deliverBlock = text.match(/## Deliver By Messenger(.*?)(?=##|\n\n)/s);
+      if (deliverBlock) {
+        const block = deliverBlock[1];
+        data.shipVia = getMatch(/Ship Via:\s*(.*)/, block);
+        data.shippingOn = getMatch(/Shipping On:\s*(.*)/, block);
+        data.deliverBy = getMatch(/Deliver By:\s*(.*)/, block);
+      }
+
+      // Extract Items Ordered
+      const itemsBlock = text.match(/## Items Ordered(.*?)(?=##|\n\n)/s);
+      if (itemsBlock) {
+        const block = itemsBlock[1];
+        // Each item line: "101690-M | Agadir ... | 2 | 0 | $80.00 | $160.00"
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l.includes('|'));
+        for (const line of lines) {
+          const parts = line.split('|').map(s => s.trim());
+          if (parts.length >= 6) {
+            data.items.push({
+              itemNumber: parts[0],
+              description: parts[1],
+              qty: parts[2],
+              handling: parts[3],
+              unitPrice: parts[4],
+              subTotal: parts[5]
+            });
+          }
+        }
+      }
+
+      // Delivery Fee
+      const actualMessenger = getMatch(/Actual Messenger Shipping Cost:\s*\$([\d.]+)/, text);
+      if (actualMessenger && parseFloat(actualMessenger) > 0) {
+        data.deliveryFee = actualMessenger;
+      } else {
+        const shippingHandling = getMatch(/Shipping & Handling \(.*?\):\s*\$([\d.]+)/, text);
+        if (shippingHandling) data.deliveryFee = shippingHandling;
+      }
+
+      // Order Total
+      data.orderTotal = getMatch(/Order Total:\s*\$([\d.]+)/, text);
+
+      return data;
+    }
+
+    // ------------------------------------------------------------
+    // UI LOGIC
+    // ------------------------------------------------------------
+    const rawText = document.getElementById('rawText');
+    const parseBtn = document.getElementById('parseBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const formSection = document.getElementById('formSection');
+    const itemsContainer = document.getElementById('itemsContainer');
+    const generateBtn = document.getElementById('generateBtn');
+    const slipPreview = document.getElementById('slip-preview');
+
+    // Populate form with parsed data
+    function populateForm(data) {
+      document.getElementById('recipientName').value = data.recipientName || '';
+      document.getElementById('address').value = data.address || '';
+      document.getElementById('phone').value = data.phone || '';
+      document.getElementById('shipVia').value = data.shipVia || '';
+      document.getElementById('shippingOn').value = data.shippingOn || '';
+      document.getElementById('deliverBy').value = data.deliverBy || '';
+      document.getElementById('deliveryFee').value = data.deliveryFee || '';
+      document.getElementById('orderTotal').value = data.orderTotal || '';
+
+      // Items
+      const container = itemsContainer;
+      // Remove existing item rows except header
+      const header = container.querySelector('.item-header');
+      container.innerHTML = '';
+      container.appendChild(header);
+
+      data.items.forEach((item, index) => {
+        addItemRow(item, index);
+      });
+    }
+
+    function addItemRow(item, index) {
+      const container = itemsContainer;
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.dataset.index = index;
+      row.innerHTML = `
+        <input type="text" class="item-number" value="${item.itemNumber || ''}" />
+        <input type="text" class="item-desc" value="${item.description || ''}" />
+        <input type="text" class="item-qty" value="${item.qty || ''}" />
+        <input type="text" class="item-unitprice" value="${item.unitPrice || ''}" />
+        <input type="text" class="item-subtotal" value="${item.subTotal || ''}" />
+        <button class="remove-item" style="background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;">×</button>
+      `;
+      const removeBtn = row.querySelector('.remove-item');
+      removeBtn.addEventListener('click', () => {
+        row.remove();
+      });
+      container.appendChild(row);
+    }
+
+    // Collect data from form
+    function getFormData() {
+      const items = [];
+      const rows = itemsContainer.querySelectorAll('.item-row:not(.item-header)');
+      rows.forEach(row => {
+        const itemNumber = row.querySelector('.item-number').value;
+        const description = row.querySelector('.item-desc').value;
+        const qty = row.querySelector('.item-qty').value;
+        const unitPrice = row.querySelector('.item-unitprice').value;
+        const subTotal = row.querySelector('.item-subtotal').value;
+        if (itemNumber || description || qty || unitPrice || subTotal) {
+          items.push({ itemNumber, description, qty, unitPrice, subTotal });
+        }
+      });
+      return {
+        recipientName: document.getElementById('recipientName').value,
+        address: document.getElementById('address').value,
+        phone: document.getElementById('phone').value,
+        shipVia: document.getElementById('shipVia').value,
+        shippingOn: document.getElementById('shippingOn').value,
+        deliverBy: document.getElementById('deliverBy').value,
+        deliveryFee: document.getElementById('deliveryFee').value,
+        orderTotal: document.getElementById('orderTotal').value,
+        items: items,
+      };
+    }
+
+    // Generate delivery slip preview
+    function generateSlip(data) {
+      const slipHtml = `
+        <div class="delivery-slip">
+          <div class="header">
+            <h2>DELIVERY SLIP</h2>
+            <p>Order &amp; Delivery Confirmation</p>
+          </div>
+          <div class="field"><span class="label">Recipient:</span> <span>${data.recipientName}</span></div>
+          <div class="field"><span class="label">Address:</span> <span style="white-space:pre-line;">${data.address}</span></div>
+          <div class="field"><span class="label">Phone:</span> <span>${data.phone}</span></div>
+          <div class="field"><span class="label">Ship Via:</span> <span>${data.shipVia}</span></div>
+          <div class="field"><span class="label">Shipping On:</span> <span>${data.shippingOn}</span></div>
+          <div class="field"><span class="label">Deliver By:</span> <span>${data.deliverBy}</span></div>
+          <div class="field"><span class="label">Delivery Fee:</span> <span>$${data.deliveryFee}</span></div>
+          <div class="field"><span class="label">Order Total:</span> <span>$${data.orderTotal}</span></div>
+
+          <h3>Items</h3>
+          <table class="items-table">
+            <thead><tr><th>Item #</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr></thead>
+            <tbody>
+              ${data.items.map(item => `
+                <tr>
+                  <td>${item.itemNumber}</td>
+                  <td>${item.description}</td>
+                  <td>${item.qty}</td>
+                  <td>${item.unitPrice}</td>
+                  <td>${item.subTotal}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="signature">
+            <div><span>Recipient Signature:</span> <span class="line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+            <div><span>Date:</span> <span class="line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+          </div>
+          <p style="margin-top:20px;font-size:10px;color:#666;">Generated by Hermes Delivery Slip Tool</p>
+        </div>
+      `;
+      slipPreview.innerHTML = slipHtml;
+      slipPreview.className = 'print-ready';
+      // Auto print after a short delay? We'll let user click print via browser.
+    }
+
+    // Parse and show form
+    function parseAndShow() {
+      const text = rawText.value;
+      if (!text.trim()) {
+        alert('Please paste the ERP text.');
+        return;
+      }
+      const data = parseErpText(text);
+      populateForm(data);
+      formSection.style.display = 'block';
+      slipPreview.className = ''; // hide preview
+      // scroll to form
+      formSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    parseBtn.addEventListener('click', parseAndShow);
+
+    clearBtn.addEventListener('click', () => {
+      rawText.value = '';
+      formSection.style.display = 'none';
+      slipPreview.className = '';
+      slipPreview.innerHTML = '';
+    });
+
+    generateBtn.addEventListener('click', () => {
+      const data = getFormData();
+      if (!data.recipientName && data.items.length === 0) {
+        alert('Please fill in at least recipient name and items.');
+        return;
+      }
+      generateSlip(data);
+      // scroll to preview
+      slipPreview.scrollIntoView({ behavior: 'smooth' });
+      // Optionally auto-print after a moment
+      // setTimeout(() => window.print(), 500);
+    });
+
+    // Add item button
+    document.getElementById('addItemBtn').addEventListener('click', () => {
+      addItemRow({ itemNumber: '', description: '', qty: '', unitPrice: '', subTotal: '' }, Date.now());
+    });
+
+    // Auto-populate if ?text=... is in URL
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const textParam = params.get('text');
+      if (textParam) {
+        rawText.value = decodeURIComponent(textParam);
+        // Optionally auto-parse after a short delay
+        setTimeout(parseAndShow, 300);
+      }
+    });
+  </script>
+</body>
+</html>
