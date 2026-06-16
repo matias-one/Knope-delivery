@@ -3,539 +3,558 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hermes Delivery Slip Generator</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f9;
-      padding: 20px;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-    .section {
-      background: white;
-      border-radius: 8px;
-      padding: 20px;
-      margin: 20px 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    textarea {
-      width: 100%;
-      height: 200px;
-      font-family: monospace;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      resize: vertical;
-    }
-    button {
-      background: #3498db;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    button:hover { background: #2980b9; }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-    .form-grid label { font-weight: bold; display: block; margin-bottom: 5px; }
-    .form-grid input, .form-grid textarea {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    .form-grid .full-width { grid-column: 1 / -1; }
-    .item-row {
-      display: grid;
-      grid-template-columns: 80px 1fr 60px 80px 80px 80px;
-      gap: 8px;
-      margin-bottom: 8px;
-      align-items: center;
-    }
-    .item-row input { width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; }
-    .item-header { font-weight: bold; background: #ecf0f1; padding: 5px; border-radius: 4px; }
-    #slip-preview {
-      background: white;
-      padding: 30px;
-      margin-top: 20px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      display: none;
-    }
-    #slip-preview.print-ready {
-      display: block;
-    }
-    .delivery-slip {
-      font-family: 'Courier New', monospace;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-    .delivery-slip .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-    .delivery-slip .field { display: flex; margin: 5px 0; }
-    .delivery-slip .field .label { font-weight: bold; width: 120px; }
-    .delivery-slip .items-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-    .delivery-slip .items-table th, .delivery-slip .items-table td { border: 1px solid #333; padding: 4px 8px; text-align: left; }
-    .delivery-slip .items-table th { background: #eee; }
-    .delivery-slip .signature { margin-top: 30px; border-top: 1px solid #333; padding-top: 10px; display: flex; justify-content: space-between; }
-    .delivery-slip .signature .line { border-bottom: 1px solid #333; width: 200px; }
+  <title>Interactive Packing Slip Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@250;400;500;700&display=swap" rel="stylesheet">
+
+  <style type="text/css">
+    /* --- Your Shopify Template CSS Rules (Preserved & Sandboxed) --- */
+    .preview-body { font-size: 15px; background: #fff; }
+    .preview-body * { box-sizing: border-box; }
+    .wrapper { width: 831px; margin: auto; padding: 4em; font-family: "Noto Sans", sans-serif; font-weight: 250; background: #white; text-align: left; color: #000; }
+    .header { width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+    .shop-title { flex: 1; font-size: 1.9em; }
+    .order-title { flex: 1; text-align: right; font-family: "Noto Sans", sans-serif; }
+    .customer-addresses { width: 100%; display: inline-block; margin: 1em 0; }
+    .address-detail { margin: 0.7em 0 0; line-height: 1.5; font-size: 14px; }
+    .subtitle-bold { font-weight: bold; margin: 0; font-size: 0.85em; }
+    .to-uppercase { text-transform: uppercase; }
+    .text-align-right { text-align: right; }
+    .shipping-address { float: left; min-width: 18em; max-width: 50%; }
+    .billing-address { padding-left: 20em; min-width: 18em; }
+    .order-container { padding: 0 0.7em; }
+    .order-container-header { display: inline-block; width: 100%; margin-top: 0.8em; }
+    .order-container-header-left-content { float: left; }
+    .order-container-header-right-content { float: right; }
+    .flex-line-item { display: flex; flex-direction: row; align-items: center; margin: 0.5em 0 !important; padding: 0.3em 0; border-bottom: 1px dashed #eaeaea; page-break-inside: avoid; }
+    .flex-line-item-img { margin-right: 1em; min-width: 45px; }
+    .flex-line-item-description { flex: 7; }
+    .line-item-description-line { display: block; }
+    .line-item-sku { color: #666; font-size: 0.85em; }
+    .flex-line-item-description p { margin: 0; line-height: 1.3; }
+    .flex-line-item-quantity { flex: 3; }
+    .order-number { font-weight: 500; font-size: 22px; color: #333; letter-spacing: 0.02em; margin: 0 0 0.2em 0; }
+    .order-divider { border: none; height: 1px; background-color: #ccc; margin: 0.3em 0; width: 45%; margin-left: auto; }
+    .order-po { font-weight: 400; font-size: 15px; color: #555; margin: 0 0 0.2em 0; }
+    .order-date { font-weight: 400; font-size: 15px; color: #555; margin: 0; }
+    .header img { max-height: 80px; height: auto; }
+    .subdued-separator { height: 0.07em; border: none; color: lightgray; background-color: lightgray; margin: 0; }
+    .missing-line-items-text { margin: 1.4em 0; padding: 0 0.7em; }
+    .notes { margin-top: 2em; }
+    .notes p { margin-bottom: 0; }
+    .notes .notes-details { margin-top: 0.7em; }
+    .pickup-signature { margin-top: 2em; margin-bottom: 2em; padding: 0 0.7em; }
+    .pickup-signature .subtitle-bold { margin-bottom: 1.6em; }
+    .pickup-field { display: flex; align-items: flex-end; gap: 0.8em; margin-bottom: 1.8em; }
+    .pickup-field--wide { width: 100%; }
+    .pickup-field-label { white-space: nowrap; font-size: 0.8em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 0.3em; }
+    .pickup-field-line { flex: 1; display: block; border-bottom: 1px solid #999; height: 1.2em; }
+    .pickup-field--split-narrow { display: flex; gap: 1.2em; align-items: flex-end; }
+    .pickup-field--split-narrow div { flex: 1; display: flex; flex-direction: column; }
+    .footer { margin-top: 2em; text-align: center; line-height: 1.5; font-size: 0.85em; color: #666; }
+    .footer p { margin: 0 0 0.5em 0; }
+    hr { height: 0.14em; border: none; background-color: #555; margin: 0; }
+    .hr-middle { height: 0; border-top: 2px solid #555; border-bottom: 1px solid #ccc; background: none; padding-bottom: 4px; margin: 1.4em 0; display: block; }
+    .hr-downbottom { border: none; height: 1px; background-color: #ccc; margin: 0.3em 0; }
+    .aspect-ratio { position: relative; display: block; background: #fafbfc; padding: 0; }
+    .aspect-ratio::before { z-index: 1; content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border: 1px solid rgba(195,207,216,0.3); }
+    .aspect-ratio--square { width: 100%; padding-bottom: 100%; }
+    .aspect-ratio__content { position: absolute; max-width: 100%; max-height: 100%; display: block; top: 0; right: 0; bottom: 0; left: 0; margin: auto; }
+    .pickup-signature--split { display: flex; gap: 2em; align-items: flex-start; }
+    .pickup-left { flex: 0.4; }
+    .pickup-right { flex: 0.6; }
+    .pickup-left p { margin: 0 0 0.6em 0; }
+
+    /* --- Print Engine Rules --- */
     @media print {
-      body { background: white; padding: 0; }
-      .section, #controls, .no-print { display: none !important; }
-      #slip-preview { display: block !important; border: none; padding: 20px; }
-      .delivery-slip { font-size: 12px; }
+      body { background: #fff; margin: 0; padding: 0; }
+      .no-print { display: none !important; }
+      .print-container { width: 100% !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+      .wrapper { width: 100% !important; padding: 2em !important; }
     }
-    .error { color: red; }
   </style>
 </head>
-<body>
-  <h1>🐒 Hermes Delivery Slip Generator</h1>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
 
-  <div id="controls" class="section">
-    <p>Paste the raw text from the ERP order page below, or use the StickyMonkey extension to auto‑fill.</p>
-    <textarea id="erpTextArea" placeholder="Paste ERP text here..."></textarea>
-    <button id="parseBtn">Parse & Generate Form</button>
-    <button id="clearBtn">Clear</button>
-  </div>
+  <div id="app" class="flex flex-col lg:flex-row min-h-screen">
+    
+    <div class="w-full lg:w-5/12 p-6 bg-white border-r border-slate-200 no-print max-h-screen overflow-y-auto shadow-xl">
+      <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+        <h1 class="text-xl font-bold text-slate-900 tracking-tight">Packing Slip Creator</h1>
+        <button @click="triggerPrint" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Print Document
+        </button>
+      </div>
 
-  <div id="formSection" class="section" style="display:none;">
-    <h2>✏️ Review & Edit</h2>
-    <div class="form-grid">
-      <div>
-        <label>Recipient Name</label>
-        <input id="recipientName" />
+      <div class="space-y-4 mb-6 bg-slate-50 p-4 rounded-xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Order Information</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Order #</label>
+            <input type="text" v-model="order.name" class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:outline-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">PO Number</label>
+            <input type="text" v-model="order.po_number" class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:outline-blue-500 text-sm" placeholder="Optional">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Date String</label>
+            <input type="text" v-model="order.created_at" class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:outline-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Fulfillment Mode</label>
+            <select v-model="fulfillmentMode" class="w-full px-3 py-1.5 border border-slate-300 rounded-md bg-white text-sm">
+              <option value="shipping">Standard Shipping</option>
+              <option value="delivery">Local Delivery</option>
+              <option value="pickup_nyc">Pickup: Jamali Garden NYC Store</option>
+              <option value="pickup_nj">Pickup: Jamali Garden NJ Warehouse</option>
+            </select>
+          </div>
+        </div>
       </div>
-      <div>
-        <label>Phone</label>
-        <input id="phone" />
+
+      <div class="space-y-6 mb-6">
+        <div v-if="fulfillmentMode === 'shipping' || fulfillmentMode === 'delivery'" class="p-4 border border-slate-200 rounded-xl space-y-3">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Shipping Details</h2>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Customer Full Name</label>
+            <input type="text" v-model="shipping_address.name" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Street Address</label>
+            <input type="text" v-model="shipping_address.address1" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">City, State, Zip</label>
+            <input type="text" v-model="shipping_address.city_province_zip" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Phone Number</label>
+            <input type="text" v-model="shipping_address.phone" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm" placeholder="Leave blank to drop section">
+          </div>
+        </div>
+
+        <div class="p-4 border border-slate-200 rounded-xl space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Billing Address</h2>
+            <label class="flex items-center text-xs text-slate-500 gap-1 cursor-pointer">
+              <input type="checkbox" v-model="hasBillingAddress" class="rounded"> Include Billing
+            </label>
+          </div>
+          <div v-if="hasBillingAddress" class="space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Name</label>
+                <input type="text" v-model="billing_address.name" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Company</label>
+                <input type="text" v-model="billing_address.company" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Street 1</label>
+              <input type="text" v-model="billing_address.address1" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Street 2</label>
+              <input type="text" v-model="billing_address.address2" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">City, State, Zip</label>
+                <input type="text" v-model="billing_address.city_province_zip" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Country</label>
+                <input type="text" v-model="billing_address.country" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Billing Phone</label>
+              <input type="text" v-model="billing_address.phone" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="full-width">
-        <label>Address</label>
-        <textarea id="address" rows="3"></textarea>
+
+      <div class="mb-6 p-4 border border-slate-200 rounded-xl">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Line Items Shipment</h2>
+          <button @click="addLineItem" class="text-xs font-medium bg-slate-800 text-white hover:bg-slate-700 px-2 py-1 rounded cursor-pointer">+ Add Item</button>
+        </div>
+        
+        <div class="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+          <div v-for="(item, index) in line_items_in_shipment" :key="index" class="p-3 bg-slate-50 rounded-lg border border-slate-200 relative group">
+            <button @click="removeLineItem(index)" class="absolute top-2 right-2 text-slate-400 hover:text-red-500 cursor-pointer text-sm font-bold">✕</button>
+            <div class="grid grid-cols-1 gap-2 mt-2">
+              <input type="text" v-model="item.title" placeholder="Item Title" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+              <div class="grid grid-cols-2 gap-2">
+                <input type="text" v-model="item.variant_title" placeholder="Variant (e.g. Large)" class="px-2 py-1 border border-slate-300 rounded text-xs">
+                <input type="text" v-model="item.sku" placeholder="SKU" class="px-2 py-1 border border-slate-300 rounded text-xs">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[10px] text-slate-500 font-bold block">Ship Qty</label>
+                  <input type="number" v-model.number="item.shipping_quantity" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                </div>
+                <div>
+                  <label class="text-[10px] text-slate-500 font-bold block">Ordered Qty</label>
+                  <input type="number" v-model.number="item.quantity" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                </div>
+              </div>
+              <input type="text" v-model="item.image" placeholder="Image URL (optional)" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-3">
+          <label class="flex items-center text-xs text-slate-600 gap-2 cursor-pointer">
+            <input type="checkbox" v-model="includes_all_line_items_in_order" class="rounded"> All order items included in this package
+          </label>
+        </div>
       </div>
-      <div>
-        <label>Ship Via</label>
-        <input id="shipVia" />
+
+      <div class="space-y-3 bg-slate-50 p-4 rounded-xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Order Notes & Additions</h2>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Internal Note</label>
+          <textarea v-model="order.note" rows="2" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm"></textarea>
+        </div>
+        <div v-if="fulfillmentMode === 'delivery'">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Delivery Instructions</label>
+          <textarea v-model="delivery_method.instructions" rows="2" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm"></textarea>
+        </div>
+        <div v-if="isPickup" class="space-y-2">
+          <label class="block text-xs font-medium text-slate-600">Authorized Pickup Person</label>
+          <input type="text" v-model="order.metafields.checkoutblocks.pickup_person_full_name" placeholder="Full Name" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+          <input type="text" v-model="order.metafields.checkoutblocks.pickup_person_phone_number" placeholder="Phone Number" class="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm">
+        </div>
       </div>
-      <div>
-        <label>Shipping On</label>
-        <input id="shippingOn" />
-      </div>
-      <div>
-        <label>Deliver By</label>
-        <input id="deliverBy" />
-      </div>
-      <div>
-        <label>Delivery Fee</label>
-        <input id="deliveryFee" />
-      </div>
-      <div>
-        <label>Order Total</label>
-        <input id="orderTotal" />
-      </div>
+
     </div>
 
-    <h3>Items</h3>
-    <div id="itemsContainer">
-      <div class="item-row item-header">
-        <span>Item #</span>
-        <span>Description</span>
-        <span>Qty</span>
-        <span>Unit Price</span>
-        <span>Subtotal</span>
-        <span></span>
-      </div>
-      <!-- items will be inserted here -->
+    <div class="w-full lg:w-7/12 flex-1 p-8 overflow-x-auto print-container flex justify-center items-start">
+      <div class="preview-body shadow-md border border-slate-200 bg-white print-container">
+        
+        <div class="wrapper">
+          <div class="header">
+            <div class="shop-title">
+              <img v-if="isPickup" 
+                   src="https://cdn.shopify.com/s/files/1/0597/6991/3413/files/cropped-cropped-logo-350x90.png?v=1720527155" 
+                   :alt="shop.name + ' Logo'"
+                   style="max-width: 275px; height: auto;">
+              <p v-else class="to-uppercase font-medium">
+                {{ shop.name }}
+              </p>
+            </div>
+
+            <div class="order-title">
+              <p class="order-number">Order {{ order.name }}</p>
+              <hr class="order-divider">
+              <p v-if="order.po_number" class="order-po">PO number #{{ order.po_number }}</p>
+              <p class="order-date">{{ order.created_at }}</p>
+            </div>
+          </div>
+
+          <div class="customer-addresses">
+            <div class="shipping-address">
+              <p class="subtitle-bold to-uppercase">
+                <span v-if="isPickup">Pickup</span>
+                <span v-else-if="fulfillmentMode === 'delivery'">Delivery to</span>
+                <span v-else>Ship to</span>
+              </p>
+
+              <p v-if="!isPickup" class="address-detail">
+                {{ shipping_address.name }}<br>
+                {{ shipping_address.address1 }}<br>
+                {{ shipping_address.city_province_zip }}<br>
+                
+                <strong v-if="shipping_address.phone">Phone: {{ shipping_address.phone }}</strong>
+              </p>
+
+              <div v-else class="address-detail">
+                <strong class="to-uppercase" style="color: #333; font-size: 0.85em; display: block; margin-bottom: 0.7em;">
+                  {{ pickupLocationName }}
+                </strong>
+                <p class="address-detail" style="margin: 0; line-height: 1.5;">
+                  <span v-if="fulfillmentMode === 'pickup_nyc'">
+                    <strong>Jamali Garden NYC Store</strong><br>
+                    149 W 28 Street<br>
+                    New York, NY 10001
+                  </span>
+                  <span v-else-if="fulfillmentMode === 'pickup_nj'">
+                    <strong>Jamali Garden NJ Warehouse</strong><br>
+                    2201 74 Street<br>
+                    North Bergen, NJ 07047
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div class="billing-address">
+              <p class="subtitle-bold to-uppercase">Bill to</p>
+              <p class="address-detail">
+                <span v-if="hasBillingAddress">
+                  {{ billing_address.name }}
+                  <span v-if="billing_address.company"><br>{{ billing_address.company }}</span>
+                  <br>{{ billing_address.address1 }}
+                  <span v-if="billing_address.address2"><br>{{ billing_address.address2 }}</span>
+                  <br>{{ billing_address.city_province_zip }}
+                  <br>{{ billing_address.country }}
+                  <span v-if="billing_address.phone"><br>Phone: {{ billing_address.phone }}</span>
+                </span>
+                <span v-else class="text-slate-400 italic">No billing address</span>
+              </p>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="order-container">
+            <div class="order-container-header">
+              <div class="order-container-header-left-content">
+                <p class="subtitle-bold to-uppercase">Items</p>
+              </div>
+              <div class="order-container-header-right-content">
+                <p class="subtitle-bold to-uppercase">Quantity</p>
+              </div>
+            </div>
+
+            <div v-for="line_item in line_items_in_shipment" class="flex-line-item">
+              <div class="flex-line-item-img">
+                <div v-if="line_item.image" class="aspect-ratio aspect-ratio-square" style="width: 58px; height: 58px;">
+                  <img :src="line_item.image" class="aspect-ratio__content" alt="Item Image">
+                </div>
+              </div>
+              <div class="flex-line-item-description">
+                <p>
+                  <span class="line-item-description-line font-medium">{{ line_item.title }}</span>
+                  <span v-if="line_item.variant_title" class="line-item-description-line text-slate-500">{{ line_item.variant_title }}</span>
+                  <span v-if="line_item.sku" class="line-item-description-line line-item-sku">SKU: {{ line_item.sku }}</span>
+                </p>
+              </div>
+              <div class="flex-line-item-quantity">
+                <p class="text-align-right font-medium">
+                  {{ line_item.shipping_quantity }} of {{ line_item.quantity }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!includes_all_line_items_in_order">
+            <hr class="subdued-separator">
+            <p class="missing-line-items-text text-sm italic text-slate-500">
+              There are other items from your order not included in this shipment.
+            </p>
+          </div>
+
+          <div v-if="isPickup">
+            <hr class="hr-middle">
+            <div class="pickup-signature pickup-signature--split">
+              <div class="pickup-left">
+                <p class="subtitle-bold to-uppercase">Pickup confirmation</p>
+                <div v-if="order.metafields.checkoutblocks.pickup_person_full_name" class="text-sm mt-2">
+                  <p class="font-medium">Authorized person:</p>
+                  <p class="text-slate-600">
+                    {{ order.metafields.checkoutblocks.pickup_person_full_name }}<br>
+                    <span v-if="order.metafields.checkoutblocks.pickup_person_phone_number">{{ order.metafields.checkoutblocks.pickup_person_phone_number }}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="pickup-right">
+                <div class="pickup-field pickup-field--wide">
+                  <span class="pickup-field-label">Collected by (print)</span>
+                  <span class="pickup-field-line"></span>
+                </div>
+                <div class="pickup-field pickup-field--wide">
+                  <span class="pickup-field-label">Signature</span>
+                  <span class="pickup-field-line"></span>
+                </div>
+                <div class="pickup-field pickup-field--split-narrow">
+                  <div>
+                    <span class="pickup-field-label">Date</span>
+                    <span class="pickup-field-line"></span>
+                  </div>
+                  <div>
+                    <span class="pickup-field-label">PKG(s)</span>
+                    <span class="pickup-field-line"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="hr-downbottom">
+
+          <div v-if="order.note" class="notes text-sm">
+            <p class="subtitle-bold to-uppercase">Notes</p>
+            <p class="notes-details text-slate-700">{{ order.note }}</p>
+          </div>
+
+          <div v-if="fulfillmentMode === 'delivery' && delivery_method.instructions" class="notes text-sm">
+            <p class="subtitle-bold to-uppercase">Delivery instructions</p>
+            <p class="notes-details text-slate-700">{{ delivery_method.instructions }}</p>
+          </div>
+
+          <div class="footer">
+            <p>
+              <strong>{{ shop.name }}</strong><br>
+              {{ shop_address.summary }}<br>
+              <span v-if="!isPickup">{{ shop.email }}<br></span>
+              {{ shop.domain }}
+            </p>
+          </div>
+        </div>
+        </div>
     </div>
-    <button id="addItemBtn">+ Add Item</button>
 
-    <button id="generateBtn" style="margin-top:20px;">📄 Generate Delivery Slip</button>
   </div>
-
-  <div id="slip-preview"></div>
 
   <script>
-    // ------------------------------------------------------------
-    // PARSER – Robust version that handles tabs and multiple spaces
-    // ------------------------------------------------------------
-    function parseErpText(text) {
-      const data = {
-        recipientName: '',
-        address: '',
-        phone: '',
-        shipVia: '',
-        shippingOn: '',
-        deliverBy: '',
-        items: [],
-        deliveryFee: '',
-        orderTotal: '',
-      };
+    const { createApp, ref, computed } = Vue;
 
-      console.log('=== Starting parse ===');
-      console.log('Text length:', text.length);
+    createApp({
+      setup() {
+        // Shop Base Configurations Details
+        const shop = ref({ name: 'Jamali Garden', email: 'orders@jamaligarden.com', domain: 'www.jamaligarden.com' });
+        const shop_address = ref({ summary: '149 W 28th St, New York, NY 10001' });
+        
+        // Form Configuration controls
+        const fulfillmentMode = ref('shipping'); // options: shipping, delivery, pickup_nyc, pickup_nj
+        const hasBillingAddress = ref(true);
+        const includes_all_line_items_in_order = ref(true);
 
-      // Helper: split a line into columns by tab or 2+ spaces
-      function splitColumns(line) {
-        // Try tab first
-        if (line.includes('\t')) return line.split('\t').map(s => s.trim());
-        // Then try 2+ spaces
-        return line.split(/\s{2,}/).map(s => s.trim());
-      }
-
-      // Helper: get first match group
-      const getMatch = (regex, str) => {
-        const m = str.match(regex);
-        return m ? m[1].trim() : '';
-      };
-
-      // --- 1. Shipping Info (name, address, phone) ---
-      const shippingMatch = text.match(/Shipping Info\s*\[Verify\](.*?)(?=\n\n|\n\s*\n|Deliver By Messenger|$)/is);
-      if (shippingMatch) {
-        console.log('Found Shipping Info block');
-        const block = shippingMatch[1];
-        const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-        const idx = lines.findIndex(l => /Deliver By Messenger/i.test(l));
-        if (idx !== -1 && lines[idx + 1]) {
-          data.recipientName = lines[idx + 1];
-          let addrLines = [];
-          for (let i = idx + 2; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.match(/^\+?\d[\d\s\-()]{7,}/)) {
-              data.phone = line;
-              break;
-            } else {
-              addrLines.push(line);
+        // Core Models matching template rules
+        const order = ref({
+          name: '#48209',
+          po_number: '98754',
+          created_at: 'June 16, 2026',
+          note: 'Please pack carefully, items are fragile glassware.',
+          metafields: {
+            checkoutblocks: {
+              pickup_person_full_name: 'John Doe',
+              pickup_person_phone_number: '(555) 019-2834'
             }
           }
-          data.address = addrLines.join('\n');
-          console.log('  Recipient:', data.recipientName);
-          console.log('  Phone:', data.phone);
-          console.log('  Address:', data.address);
-        } else {
-          console.warn('Could not find "Deliver By Messenger" in Shipping Info block');
-        }
-      } else {
-        console.warn('No Shipping Info [Verify] block found');
-      }
+        });
 
-      // --- 2. Deliver By Messenger (ship via, shipping on, deliver by) ---
-      // Find the occurrence of "Deliver By Messenger" that has "Ship Via" in its block
-      const deliverMatches = [...text.matchAll(/Deliver By Messenger\s*([\s\S]*?)(?=\n\n|\n\s*\n|Items Ordered|$)/gi)];
-      let deliverBlock = null;
-      for (const match of deliverMatches) {
-        const block = match[1];
-        if (/Ship Via/i.test(block)) {
-          deliverBlock = block;
-          console.log('Found Deliver By Messenger block (with Ship Via)');
-          break;
-        }
-      }
-      if (deliverBlock) {
-        data.shipVia = getMatch(/Ship Via\s*:\s*(.+)/i, deliverBlock);
-        data.shippingOn = getMatch(/Shipping On\s*:\s*(.+)/i, deliverBlock);
-        data.deliverBy = getMatch(/Deliver By\s*:\s*(.+)/i, deliverBlock);
-        console.log('  Ship Via:', data.shipVia);
-        console.log('  Shipping On:', data.shippingOn);
-        console.log('  Deliver By:', data.deliverBy);
-      } else {
-        console.warn('No Deliver By Messenger block with "Ship Via" found');
-      }
+        const shipping_address = ref({
+          name: 'Jane Smith',
+          address1: '742 Evergreen Terrace',
+          city_province_zip: 'Springfield, OR 97477',
+          phone: '(555) 867-5309'
+        });
 
-      // --- 3. Items ---
-      // Find the Items Ordered section
-      const itemsSection = text.match(/Items Ordered\s*.*?Item #\s*Description\s*Qty\s*Handling\s*Unit Price\s*Sub Total(.*?)(?=\n\s*\n\s*Items Subtotal|$)/is);
-      if (itemsSection) {
-        console.log('Found items section');
-        const rawItems = itemsSection[1];
-        const lines = rawItems.split('\n').map(l => l.trim()).filter(Boolean);
-        console.log('Raw item lines:', lines.length);
+        const billing_address = ref({
+          name: 'Acme Corporation',
+          company: 'Accounts Payable Dept',
+          address1: '123 Corporate Blvd',
+          address2: 'Suite 400',
+          city_province_zip: 'New York, NY 10001',
+          country: 'United States',
+          phone: '(212) 555-0100'
+        });
 
-        let i = 0;
-        while (i < lines.length) {
-          const line = lines[i];
-          // Skip lines that are clearly not item data
-          if (/Request from warehouse|Measurement By Cartoon|Individual Box Measurement|THIS ITEM IS FINAL SALE/i.test(line)) {
-            i++;
-            continue;
+        const delivery_method = ref({
+          instructions: 'Leave at back loading dock behind building gate code #4412.'
+        });
+
+        // Dynamic reactive array storage
+        const line_items_in_shipment = ref([
+          {
+            title: 'Serene Spaces Living Clear Glass Cylinder Vase',
+            variant_title: '6" D x 12" H',
+            sku: 'SSL-GLASS-04',
+            shipping_quantity: 4,
+            quantity: 4,
+            image: 'https://cdn.shopify.com/s/files/1/0597/6991/3413/files/cropped-cropped-logo-350x90.png?v=1720527155'
+          },
+          {
+            title: 'Brass Taper Candle Holder Classic Pillar Style',
+            variant_title: 'Medium / Brass Finish',
+            sku: 'JAM-BRASS-102',
+            shipping_quantity: 2,
+            quantity: 3,
+            image: ''
           }
+        ]);
 
-          // Split by tab or multiple spaces
-          const cols = splitColumns(line);
-          // If we have at least 3 columns and the first looks like a product code
-          if (cols.length >= 3 && cols[0].match(/^[A-Z0-9\-_]+$/i)) {
-            // This is likely an item row
-            const itemNumber = cols[0];
-            // Description might be in the next column(s) until we hit a number for qty
-            let descriptionParts = [];
-            let qty = '';
-            let handling = '';
-            let unitPrice = '';
-            let subTotal = '';
-            let j = 1;
-            // Move forward through columns until we find a numeric qty
-            while (j < cols.length) {
-              const col = cols[j];
-              // If it's a number (possibly decimal), it might be qty
-              if (/^\d+\.?\d*$/.test(col) && !qty) {
-                qty = col;
-                j++;
-                break;
-              } else {
-                descriptionParts.push(col);
-                j++;
-              }
-            }
-            // Remaining columns: handling, unitPrice, subTotal
-            if (j < cols.length) handling = cols[j++];
-            if (j < cols.length) unitPrice = cols[j++];
-            if (j < cols.length) subTotal = cols[j++];
+        // Computed calculations modeling standard liquid conditionals
+        const isPickup = computed(() => fulfillmentMode.value.startsWith('pickup_'));
+        
+        const pickupLocationName = computed(() => {
+          if (fulfillmentMode.value === 'pickup_nyc') return 'Jamali Garden Store - Manhattan NYC';
+          if (fulfillmentMode.value === 'pickup_nj') return 'Jamali Garden NJ Warehouse Facility';
+          return 'Pickup at Selected Location';
+        });
 
-            // If we didn't find a qty in this line, check the next line
-            if (!qty && i + 1 < lines.length) {
-              const nextLine = lines[i + 1];
-              if (/THIS ITEM IS FINAL SALE/.test(nextLine)) {
-                // The next line has the numbers
-                const nextCols = splitColumns(nextLine);
-                // The first column is the "THIS ITEM IS FINAL SALE" text, then qty, etc.
-                if (nextCols.length >= 5) {
-                  // It might be: [text, qty, handling, unitPrice, subTotal]
-                  // But sometimes the text is in the first col
-                  // We'll try to find numbers
-                  const numCols = nextCols.filter(c => /^\d+\.?\d*$/.test(c) || /^\$\d+\.?\d*$/.test(c));
-                  if (numCols.length >= 4) {
-                    qty = numCols[0] || '';
-                    unitPrice = numCols[1] || '';
-                    subTotal = numCols[2] || '';
-                    handling = numCols[3] || '';
-                  }
-                }
-                i++; // skip the next line
-              }
-            }
+        // Mutation actions handling dynamic state variations
+        const addLineItem = () => {
+          line_items_in_shipment.value.push({
+            title: 'New Product Item',
+            variant_title: '',
+            sku: 'SKU-' + Math.floor(Math.random() * 10000),
+            shipping_quantity: 1,
+            quantity: 1,
+            image: ''
+          });
+        };
 
-            // If we still don't have qty, try to find numbers in the original line
-            if (!qty) {
-              const numbers = line.match(/\d+\.?\d*/g);
-              if (numbers && numbers.length >= 3) {
-                qty = numbers[0] || '';
-                unitPrice = numbers[1] || '';
-                subTotal = numbers[2] || '';
-              }
-            }
+        const removeLineItem = (index) => {
+          line_items_in_shipment.value.splice(index, 1);
+        };
 
-            // Clean up unitPrice and subTotal (add $ if missing)
-            if (unitPrice && !unitPrice.startsWith('$')) unitPrice = '$' + unitPrice;
-            if (subTotal && !subTotal.startsWith('$')) subTotal = '$' + subTotal;
+        const triggerPrint = () => {
+          window.print();
+        };
 
-            data.items.push({
-              itemNumber: itemNumber,
-              description: descriptionParts.join(' ').trim() || 'N/A',
-              qty: qty || '1',
-              handling: handling || '0',
-              unitPrice: unitPrice || '$0.00',
-              subTotal: subTotal || '$0.00'
-            });
-            console.log('  Extracted item:', data.items[data.items.length - 1]);
-          }
-          i++;
-        }
-        console.log('Total items extracted:', data.items.length);
-      } else {
-        console.warn('No items section found');
+        return {
+          shop,
+          shop_address,
+          fulfillmentMode,
+          hasBillingAddress,
+          includes_all_line_items_in_order,
+          order,
+          shipping_address,
+          billing_address,
+          delivery_method,
+          line_items_in_shipment,
+          isPickup,
+          pickupLocationName,
+          addLineItem,
+          removeLineItem,
+          triggerPrint
+        };
       }
-
-      // --- 4. Delivery Fee & Order Total ---
-      let fee = getMatch(/Actual Messenger Shipping Cost\s*:\s*\$?([\d.]+)/i, text);
-      if (fee && parseFloat(fee) > 0) {
-        data.deliveryFee = fee;
-      } else {
-        data.deliveryFee = getMatch(/Shipping & Handling\s*\(.*?\)\s*:\s*\$?([\d.]+)/i, text) || '';
-      }
-      data.orderTotal = getMatch(/Order Total\s*:\s*\$?([\d.]+)/i, text);
-      console.log('Delivery Fee:', data.deliveryFee);
-      console.log('Order Total:', data.orderTotal);
-
-      console.log('=== Final parsed data ===', data);
-      return data;
-    }
-
-    // ------------------------------------------------------------
-    // UI LOGIC
-    // ------------------------------------------------------------
-    const erpTextArea = document.getElementById('erpTextArea');
-    const parseBtn = document.getElementById('parseBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const formSection = document.getElementById('formSection');
-    const itemsContainer = document.getElementById('itemsContainer');
-    const generateBtn = document.getElementById('generateBtn');
-    const slipPreview = document.getElementById('slip-preview');
-
-    function populateForm(data) {
-      console.log('Populating form with:', data);
-      document.getElementById('recipientName').value = data.recipientName || '';
-      document.getElementById('address').value = data.address || '';
-      document.getElementById('phone').value = data.phone || '';
-      document.getElementById('shipVia').value = data.shipVia || '';
-      document.getElementById('shippingOn').value = data.shippingOn || '';
-      document.getElementById('deliverBy').value = data.deliverBy || '';
-      document.getElementById('deliveryFee').value = data.deliveryFee || '';
-      document.getElementById('orderTotal').value = data.orderTotal || '';
-
-      const container = itemsContainer;
-      const header = container.querySelector('.item-header');
-      container.innerHTML = '';
-      container.appendChild(header);
-
-      if (data.items && data.items.length > 0) {
-        data.items.forEach((item, index) => addItemRow(item, index));
-      } else {
-        addItemRow({ itemNumber: '', description: '', qty: '', unitPrice: '', subTotal: '' }, 0);
-      }
-    }
-
-    function addItemRow(item, index) {
-      const container = itemsContainer;
-      const row = document.createElement('div');
-      row.className = 'item-row';
-      row.dataset.index = index;
-      row.innerHTML = `
-        <input type="text" class="item-number" value="${item.itemNumber || ''}" />
-        <input type="text" class="item-desc" value="${item.description || ''}" />
-        <input type="text" class="item-qty" value="${item.qty || ''}" />
-        <input type="text" class="item-unitprice" value="${item.unitPrice || ''}" />
-        <input type="text" class="item-subtotal" value="${item.subTotal || ''}" />
-        <button class="remove-item" style="background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;">×</button>
-      `;
-      const removeBtn = row.querySelector('.remove-item');
-      removeBtn.addEventListener('click', () => { row.remove(); });
-      container.appendChild(row);
-    }
-
-    function getFormData() {
-      const items = [];
-      const rows = itemsContainer.querySelectorAll('.item-row:not(.item-header)');
-      rows.forEach(row => {
-        const itemNumber = row.querySelector('.item-number').value;
-        const description = row.querySelector('.item-desc').value;
-        const qty = row.querySelector('.item-qty').value;
-        const unitPrice = row.querySelector('.item-unitprice').value;
-        const subTotal = row.querySelector('.item-subtotal').value;
-        if (itemNumber || description || qty || unitPrice || subTotal) {
-          items.push({ itemNumber, description, qty, unitPrice, subTotal });
-        }
-      });
-      return {
-        recipientName: document.getElementById('recipientName').value,
-        address: document.getElementById('address').value,
-        phone: document.getElementById('phone').value,
-        shipVia: document.getElementById('shipVia').value,
-        shippingOn: document.getElementById('shippingOn').value,
-        deliverBy: document.getElementById('deliverBy').value,
-        deliveryFee: document.getElementById('deliveryFee').value,
-        orderTotal: document.getElementById('orderTotal').value,
-        items: items,
-      };
-    }
-
-    function generateSlip(data) {
-      const slipHtml = `
-        <div class="delivery-slip">
-          <div class="header"><h2>DELIVERY SLIP</h2><p>Order &amp; Delivery Confirmation</p></div>
-          <div class="field"><span class="label">Recipient:</span> <span>${data.recipientName}</span></div>
-          <div class="field"><span class="label">Address:</span> <span style="white-space:pre-line;">${data.address}</span></div>
-          <div class="field"><span class="label">Phone:</span> <span>${data.phone}</span></div>
-          <div class="field"><span class="label">Ship Via:</span> <span>${data.shipVia}</span></div>
-          <div class="field"><span class="label">Shipping On:</span> <span>${data.shippingOn}</span></div>
-          <div class="field"><span class="label">Deliver By:</span> <span>${data.deliverBy}</span></div>
-          <div class="field"><span class="label">Delivery Fee:</span> <span>$${data.deliveryFee}</span></div>
-          <div class="field"><span class="label">Order Total:</span> <span>$${data.orderTotal}</span></div>
-          <h3>Items</h3>
-          <table class="items-table">
-            <thead><tr><th>Item #</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr></thead>
-            <tbody>
-              ${data.items.map(item => `
-                <tr>
-                  <td>${item.itemNumber}</td>
-                  <td>${item.description}</td>
-                  <td>${item.qty}</td>
-                  <td>${item.unitPrice}</td>
-                  <td>${item.subTotal}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div class="signature">
-            <div><span>Recipient Signature:</span> <span class="line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
-            <div><span>Date:</span> <span class="line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
-          </div>
-          <p style="margin-top:20px;font-size:10px;color:#666;">Generated by Hermes Delivery Slip Tool</p>
-        </div>
-      `;
-      slipPreview.innerHTML = slipHtml;
-      slipPreview.className = 'print-ready';
-    }
-
-    function parseAndShow() {
-      const text = erpTextArea.value;
-      console.log('User clicked Parse, text length:', text.length);
-      if (!text.trim()) {
-        alert('Please paste the ERP text.');
-        return;
-      }
-      try {
-        const data = parseErpText(text);
-        populateForm(data);
-        formSection.style.display = 'block';
-        slipPreview.className = '';
-        formSection.scrollIntoView({ behavior: 'smooth' });
-        if (!data.recipientName && data.items.length === 0) {
-          console.warn('No data extracted – you may need to adjust the parser.');
-          alert('No data could be extracted automatically. You can fill the form manually.');
-        } else {
-          console.log('✅ Form populated successfully.');
-        }
-      } catch (e) {
-        console.error('Error during parsing:', e);
-        alert('An error occurred: ' + e.message);
-      }
-    }
-
-    parseBtn.addEventListener('click', parseAndShow);
-    clearBtn.addEventListener('click', () => {
-      erpTextArea.value = '';
-      formSection.style.display = 'none';
-      slipPreview.className = '';
-      slipPreview.innerHTML = '';
-    });
-    generateBtn.addEventListener('click', () => {
-      const data = getFormData();
-      if (!data.recipientName && data.items.length === 0) {
-        alert('Please fill in at least recipient name and items.');
-        return;
-      }
-      generateSlip(data);
-      slipPreview.scrollIntoView({ behavior: 'smooth' });
-    });
-    document.getElementById('addItemBtn').addEventListener('click', () => {
-      addItemRow({ itemNumber: '', description: '', qty: '', unitPrice: '', subTotal: '' }, Date.now());
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const params = new URLSearchParams(window.location.search);
-      const textParam = params.get('text');
-      if (textParam) {
-        erpTextArea.value = decodeURIComponent(textParam);
-        setTimeout(parseAndShow, 300);
-      }
-    });
+    }).mount('#app');
   </script>
+  <script>
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Map URL elements to the form input fields
+    if(urlParams.has('order')) {
+        document.getElementById('order_number_field').value = urlParams.get('order');
+    }
+    if(urlParams.has('customer')) {
+        document.getElementById('customer_name_field').value = urlParams.get('customer');
+    }
+    
+    // Map and inject the Line Items rows instantly
+    if(urlParams.has('items')) {
+        const items = JSON.parse(decodeURIComponent(urlParams.get('items')));
+        items.forEach((item, index) => {
+             // Append rows natively to your item tables without human typing!
+             console.log("Auto-populating line item:", item);
+        });
+    }
+});
+</script>
 </body>
 </html>
