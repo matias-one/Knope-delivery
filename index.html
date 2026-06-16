@@ -164,7 +164,7 @@
 
   <script>
     // ------------------------------------------------------------
-    // PARSER – extracts data from the raw ERP text
+    // PARSER – Robust version that handles tabs and multiple spaces
     // ------------------------------------------------------------
     function parseErpText(text) {
       const data = {
@@ -182,28 +182,32 @@
       console.log('=== Starting parse ===');
       console.log('Text length:', text.length);
 
-      // Helper to get first match
+      // Helper: split a line into columns by tab or 2+ spaces
+      function splitColumns(line) {
+        // Try tab first
+        if (line.includes('\t')) return line.split('\t').map(s => s.trim());
+        // Then try 2+ spaces
+        return line.split(/\s{2,}/).map(s => s.trim());
+      }
+
+      // Helper: get first match group
       const getMatch = (regex, str) => {
         const m = str.match(regex);
         return m ? m[1].trim() : '';
       };
 
       // --- 1. Shipping Info (name, address, phone) ---
-      // Look for the "Shipping Info [Verify]" block
       const shippingMatch = text.match(/Shipping Info\s*\[Verify\](.*?)(?=\n\n|\n\s*\n|Deliver By Messenger|$)/is);
       if (shippingMatch) {
         console.log('Found Shipping Info block');
         const block = shippingMatch[1];
         const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-        // Find the line that says "Deliver By Messenger"
         const idx = lines.findIndex(l => /Deliver By Messenger/i.test(l));
         if (idx !== -1 && lines[idx + 1]) {
           data.recipientName = lines[idx + 1];
-          // Collect address lines until we hit a phone number
           let addrLines = [];
           for (let i = idx + 2; i < lines.length; i++) {
             const line = lines[i];
-            // If it looks like a phone (contains +, digits, parentheses, dashes)
             if (line.match(/^\+?\d[\d\s\-()]{7,}/)) {
               data.phone = line;
               break;
@@ -223,57 +227,132 @@
       }
 
       // --- 2. Deliver By Messenger (ship via, shipping on, deliver by) ---
-      const deliverMatch = text.match(/Deliver By Messenger(.*?)(?=\n\n|\n\s*\n|Items Ordered|$)/is);
-      if (deliverMatch) {
-        console.log('Found Deliver By Messenger block');
-        const block = deliverMatch[1];
-        data.shipVia = getMatch(/Ship Via\s*:\s*(.+)/i, block);
-        data.shippingOn = getMatch(/Shipping On\s*:\s*(.+)/i, block);
-        data.deliverBy = getMatch(/Deliver By\s*:\s*(.+)/i, block);
+      // Find the occurrence of "Deliver By Messenger" that has "Ship Via" in its block
+      const deliverMatches = [...text.matchAll(/Deliver By Messenger\s*([\s\S]*?)(?=\n\n|\n\s*\n|Items Ordered|$)/gi)];
+      let deliverBlock = null;
+      for (const match of deliverMatches) {
+        const block = match[1];
+        if (/Ship Via/i.test(block)) {
+          deliverBlock = block;
+          console.log('Found Deliver By Messenger block (with Ship Via)');
+          break;
+        }
+      }
+      if (deliverBlock) {
+        data.shipVia = getMatch(/Ship Via\s*:\s*(.+)/i, deliverBlock);
+        data.shippingOn = getMatch(/Shipping On\s*:\s*(.+)/i, deliverBlock);
+        data.deliverBy = getMatch(/Deliver By\s*:\s*(.+)/i, deliverBlock);
         console.log('  Ship Via:', data.shipVia);
         console.log('  Shipping On:', data.shippingOn);
         console.log('  Deliver By:', data.deliverBy);
       } else {
-        console.warn('No Deliver By Messenger block found');
+        console.warn('No Deliver By Messenger block with "Ship Via" found');
       }
 
       // --- 3. Items ---
-      // Look for the table header: "Item # Description Qty Handling Unit Price Sub Total"
-      const itemsMatch = text.match(/Item #\s*Description\s*Qty\s*Handling\s*Unit Price\s*Sub Total(.*?)(?=\n\s*\n\s*Items Subtotal|$)/is);
-      if (itemsMatch) {
-        console.log('Found items table');
-        const tableContent = itemsMatch[1];
-        // Split into lines that contain pipe '|'
-        const lines = tableContent.split('\n').map(l => l.trim()).filter(l => l.includes('|'));
-        console.log('Item rows (raw):', lines.length);
-        for (const line of lines) {
-          // Skip lines that are not actual product rows (e.g., "Request from warehouse", measurements)
-          if (/Request from warehouse|Measurement By Cartoon|Individual Box Measurement/i.test(line)) continue;
-          // Split by pipe
-          const parts = line.split('|').map(s => s.trim());
-          // Need at least 6 parts
-          if (parts.length >= 6) {
-            // The first part should look like a product code (letters/numbers/hyphens/underscores)
-            const itemNumber = parts[0];
-            if (itemNumber.match(/^[A-Z0-9\-_]+$/i)) {
-              data.items.push({
-                itemNumber: itemNumber,
-                description: parts[1] || '',
-                qty: parts[2] || '',
-                handling: parts[3] || '',
-                unitPrice: parts[4] || '',
-                subTotal: parts[5] || ''
-              });
-            }
+      // Find the Items Ordered section
+      const itemsSection = text.match(/Items Ordered\s*.*?Item #\s*Description\s*Qty\s*Handling\s*Unit Price\s*Sub Total(.*?)(?=\n\s*\n\s*Items Subtotal|$)/is);
+      if (itemsSection) {
+        console.log('Found items section');
+        const rawItems = itemsSection[1];
+        const lines = rawItems.split('\n').map(l => l.trim()).filter(Boolean);
+        console.log('Raw item lines:', lines.length);
+
+        let i = 0;
+        while (i < lines.length) {
+          const line = lines[i];
+          // Skip lines that are clearly not item data
+          if (/Request from warehouse|Measurement By Cartoon|Individual Box Measurement|THIS ITEM IS FINAL SALE/i.test(line)) {
+            i++;
+            continue;
           }
+
+          // Split by tab or multiple spaces
+          const cols = splitColumns(line);
+          // If we have at least 3 columns and the first looks like a product code
+          if (cols.length >= 3 && cols[0].match(/^[A-Z0-9\-_]+$/i)) {
+            // This is likely an item row
+            const itemNumber = cols[0];
+            // Description might be in the next column(s) until we hit a number for qty
+            let descriptionParts = [];
+            let qty = '';
+            let handling = '';
+            let unitPrice = '';
+            let subTotal = '';
+            let j = 1;
+            // Move forward through columns until we find a numeric qty
+            while (j < cols.length) {
+              const col = cols[j];
+              // If it's a number (possibly decimal), it might be qty
+              if (/^\d+\.?\d*$/.test(col) && !qty) {
+                qty = col;
+                j++;
+                break;
+              } else {
+                descriptionParts.push(col);
+                j++;
+              }
+            }
+            // Remaining columns: handling, unitPrice, subTotal
+            if (j < cols.length) handling = cols[j++];
+            if (j < cols.length) unitPrice = cols[j++];
+            if (j < cols.length) subTotal = cols[j++];
+
+            // If we didn't find a qty in this line, check the next line
+            if (!qty && i + 1 < lines.length) {
+              const nextLine = lines[i + 1];
+              if (/THIS ITEM IS FINAL SALE/.test(nextLine)) {
+                // The next line has the numbers
+                const nextCols = splitColumns(nextLine);
+                // The first column is the "THIS ITEM IS FINAL SALE" text, then qty, etc.
+                if (nextCols.length >= 5) {
+                  // It might be: [text, qty, handling, unitPrice, subTotal]
+                  // But sometimes the text is in the first col
+                  // We'll try to find numbers
+                  const numCols = nextCols.filter(c => /^\d+\.?\d*$/.test(c) || /^\$\d+\.?\d*$/.test(c));
+                  if (numCols.length >= 4) {
+                    qty = numCols[0] || '';
+                    unitPrice = numCols[1] || '';
+                    subTotal = numCols[2] || '';
+                    handling = numCols[3] || '';
+                  }
+                }
+                i++; // skip the next line
+              }
+            }
+
+            // If we still don't have qty, try to find numbers in the original line
+            if (!qty) {
+              const numbers = line.match(/\d+\.?\d*/g);
+              if (numbers && numbers.length >= 3) {
+                qty = numbers[0] || '';
+                unitPrice = numbers[1] || '';
+                subTotal = numbers[2] || '';
+              }
+            }
+
+            // Clean up unitPrice and subTotal (add $ if missing)
+            if (unitPrice && !unitPrice.startsWith('$')) unitPrice = '$' + unitPrice;
+            if (subTotal && !subTotal.startsWith('$')) subTotal = '$' + subTotal;
+
+            data.items.push({
+              itemNumber: itemNumber,
+              description: descriptionParts.join(' ').trim() || 'N/A',
+              qty: qty || '1',
+              handling: handling || '0',
+              unitPrice: unitPrice || '$0.00',
+              subTotal: subTotal || '$0.00'
+            });
+            console.log('  Extracted item:', data.items[data.items.length - 1]);
+          }
+          i++;
         }
-        console.log('Items extracted:', data.items.length);
+        console.log('Total items extracted:', data.items.length);
       } else {
-        console.warn('No items table found');
+        console.warn('No items section found');
       }
 
       // --- 4. Delivery Fee & Order Total ---
-      // Try Actual Messenger, fallback to Shipping & Handling
       let fee = getMatch(/Actual Messenger Shipping Cost\s*:\s*\$?([\d.]+)/i, text);
       if (fee && parseFloat(fee) > 0) {
         data.deliveryFee = fee;
@@ -284,7 +363,7 @@
       console.log('Delivery Fee:', data.deliveryFee);
       console.log('Order Total:', data.orderTotal);
 
-      console.log('=== Parsed data ===', data);
+      console.log('=== Final parsed data ===', data);
       return data;
     }
 
@@ -299,7 +378,6 @@
     const generateBtn = document.getElementById('generateBtn');
     const slipPreview = document.getElementById('slip-preview');
 
-    // Populate form with parsed data
     function populateForm(data) {
       console.log('Populating form with:', data);
       document.getElementById('recipientName').value = data.recipientName || '';
@@ -311,18 +389,14 @@
       document.getElementById('deliveryFee').value = data.deliveryFee || '';
       document.getElementById('orderTotal').value = data.orderTotal || '';
 
-      // Items
       const container = itemsContainer;
       const header = container.querySelector('.item-header');
       container.innerHTML = '';
       container.appendChild(header);
 
       if (data.items && data.items.length > 0) {
-        data.items.forEach((item, index) => {
-          addItemRow(item, index);
-        });
+        data.items.forEach((item, index) => addItemRow(item, index));
       } else {
-        // Add one empty row so user can add manually
         addItemRow({ itemNumber: '', description: '', qty: '', unitPrice: '', subTotal: '' }, 0);
       }
     }
@@ -341,13 +415,10 @@
         <button class="remove-item" style="background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;">×</button>
       `;
       const removeBtn = row.querySelector('.remove-item');
-      removeBtn.addEventListener('click', () => {
-        row.remove();
-      });
+      removeBtn.addEventListener('click', () => { row.remove(); });
       container.appendChild(row);
     }
 
-    // Collect data from form
     function getFormData() {
       const items = [];
       const rows = itemsContainer.querySelectorAll('.item-row:not(.item-header)');
@@ -374,14 +445,10 @@
       };
     }
 
-    // Generate delivery slip preview
     function generateSlip(data) {
       const slipHtml = `
         <div class="delivery-slip">
-          <div class="header">
-            <h2>DELIVERY SLIP</h2>
-            <p>Order &amp; Delivery Confirmation</p>
-          </div>
+          <div class="header"><h2>DELIVERY SLIP</h2><p>Order &amp; Delivery Confirmation</p></div>
           <div class="field"><span class="label">Recipient:</span> <span>${data.recipientName}</span></div>
           <div class="field"><span class="label">Address:</span> <span style="white-space:pre-line;">${data.address}</span></div>
           <div class="field"><span class="label">Phone:</span> <span>${data.phone}</span></div>
@@ -390,7 +457,6 @@
           <div class="field"><span class="label">Deliver By:</span> <span>${data.deliverBy}</span></div>
           <div class="field"><span class="label">Delivery Fee:</span> <span>$${data.deliveryFee}</span></div>
           <div class="field"><span class="label">Order Total:</span> <span>$${data.orderTotal}</span></div>
-
           <h3>Items</h3>
           <table class="items-table">
             <thead><tr><th>Item #</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr></thead>
@@ -406,7 +472,6 @@
               `).join('')}
             </tbody>
           </table>
-
           <div class="signature">
             <div><span>Recipient Signature:</span> <span class="line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
             <div><span>Date:</span> <span class="line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
@@ -418,7 +483,6 @@
       slipPreview.className = 'print-ready';
     }
 
-    // Parse and show form
     function parseAndShow() {
       const text = erpTextArea.value;
       console.log('User clicked Parse, text length:', text.length);
@@ -430,14 +494,13 @@
         const data = parseErpText(text);
         populateForm(data);
         formSection.style.display = 'block';
-        slipPreview.className = ''; // hide preview
+        slipPreview.className = '';
         formSection.scrollIntoView({ behavior: 'smooth' });
-        // If no data was extracted, show a warning
         if (!data.recipientName && data.items.length === 0) {
           console.warn('No data extracted – you may need to adjust the parser.');
           alert('No data could be extracted automatically. You can fill the form manually.');
         } else {
-          console.log('Form populated successfully.');
+          console.log('✅ Form populated successfully.');
         }
       } catch (e) {
         console.error('Error during parsing:', e);
@@ -446,14 +509,12 @@
     }
 
     parseBtn.addEventListener('click', parseAndShow);
-
     clearBtn.addEventListener('click', () => {
       erpTextArea.value = '';
       formSection.style.display = 'none';
       slipPreview.className = '';
       slipPreview.innerHTML = '';
     });
-
     generateBtn.addEventListener('click', () => {
       const data = getFormData();
       if (!data.recipientName && data.items.length === 0) {
@@ -463,12 +524,10 @@
       generateSlip(data);
       slipPreview.scrollIntoView({ behavior: 'smooth' });
     });
-
     document.getElementById('addItemBtn').addEventListener('click', () => {
       addItemRow({ itemNumber: '', description: '', qty: '', unitPrice: '', subTotal: '' }, Date.now());
     });
 
-    // Auto-populate if ?text=... is in URL
     window.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
       const textParam = params.get('text');
