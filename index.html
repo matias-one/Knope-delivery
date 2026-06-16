@@ -163,100 +163,147 @@
   <div id="slip-preview"></div>
 
   <script>
-    // ------------------------------------------------------------
-    // PARSER – extracts data from the raw ERP text
-    // ------------------------------------------------------------
-    function parseErpText(text) {
-      const data = {
-        recipientName: '',
-        address: '',
-        phone: '',
-        shipVia: '',
-        shippingOn: '',
-        deliverBy: '',
-        items: [],
-        deliveryFee: '',
-        orderTotal: '',
-        // also capture subtotal, tax, etc if needed
-      };
 
-      // Helper: get first match group
-      const getMatch = (regex, str) => {
-        const m = str.match(regex);
-        return m ? m[1].trim() : '';
-      };
+// ------------------------------------------------------------
+// PARSER – extracts data from the raw ERP text (updated for actual format)
+// ------------------------------------------------------------
+function parseErpText(text) {
+  const data = {
+    recipientName: '',
+    address: '',
+    phone: '',
+    shipVia: '',
+    shippingOn: '',
+    deliverBy: '',
+    items: [],
+    deliveryFee: '',
+    orderTotal: '',
+  };
 
-      // Extract Shipping Info block
-      const shippingBlock = text.match(/## Shipping Info \[Verify\](.*?)(?=##|\n\n)/s);
-      if (shippingBlock) {
-        const block = shippingBlock[1];
-        const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-        // After "Deliver By Messenger" line, the next line is name, then address lines, then phone
-        const messengerIdx = lines.findIndex(l => l.includes('Deliver By Messenger'));
-        if (messengerIdx !== -1 && lines[messengerIdx+1]) {
-          data.recipientName = lines[messengerIdx+1];
-          // collect address lines until we hit a phone number (starts with +1 or \d{3}-\d{3}-\d{4} etc)
-          let addrLines = [];
-          let phoneFound = false;
-          for (let i = messengerIdx+2; i < lines.length; i++) {
-            const line = lines[i];
-            // crude phone detection: starts with + or has pattern
-            if (line.match(/^\+?\d[\d\s\-()]+/)) {
-              data.phone = line;
-              phoneFound = true;
-              break;
-            } else {
-              addrLines.push(line);
-            }
-          }
-          data.address = addrLines.join('\n');
-        }
-      }
+  // Helper: get first match group
+  const getMatch = (regex, str) => {
+    const m = str.match(regex);
+    return m ? m[1].trim() : '';
+  };
 
-      // Extract Deliver By Messenger block
-      const deliverBlock = text.match(/## Deliver By Messenger(.*?)(?=##|\n\n)/s);
-      if (deliverBlock) {
-        const block = deliverBlock[1];
-        data.shipVia = getMatch(/Ship Via:\s*(.*)/, block);
-        data.shippingOn = getMatch(/Shipping On:\s*(.*)/, block);
-        data.deliverBy = getMatch(/Deliver By:\s*(.*)/, block);
-      }
-
-      // Extract Items Ordered
-      const itemsBlock = text.match(/## Items Ordered(.*?)(?=##|\n\n)/s);
-      if (itemsBlock) {
-        const block = itemsBlock[1];
-        // Each item line: "101690-M | Agadir ... | 2 | 0 | $80.00 | $160.00"
-        const lines = block.split('\n').map(l => l.trim()).filter(l => l.includes('|'));
-        for (const line of lines) {
-          const parts = line.split('|').map(s => s.trim());
-          if (parts.length >= 6) {
-            data.items.push({
-              itemNumber: parts[0],
-              description: parts[1],
-              qty: parts[2],
-              handling: parts[3],
-              unitPrice: parts[4],
-              subTotal: parts[5]
-            });
-          }
-        }
-      }
-
-      // Delivery Fee
-      const actualMessenger = getMatch(/Actual Messenger Shipping Cost:\s*\$([\d.]+)/, text);
-      if (actualMessenger && parseFloat(actualMessenger) > 0) {
-        data.deliveryFee = actualMessenger;
-      } else {
-        const shippingHandling = getMatch(/Shipping & Handling \(.*?\):\s*\$([\d.]+)/, text);
-        if (shippingHandling) data.deliveryFee = shippingHandling;
-      }
-
-      // Order Total
-      data.orderTotal = getMatch(/Order Total:\s*\$([\d.]+)/, text);
-
-      return data;
+  // Helper: get all matches
+  const getAllMatches = (regex, str) => {
+    const matches = [];
+    let m;
+    while ((m = regex.exec(str)) !== null) {
+      matches.push(m);
     }
+    return matches;
+  };
+
+  // --- Extract Shipping Info ---
+  // Look for "Shipping Info [Verify]" section
+  const shippingSection = text.match(/Shipping Info\s*\[Verify\](.*?)(?=\n\n|\n\s*\n|$)/s);
+  if (shippingSection) {
+    const block = shippingSection[1];
+    // After "Deliver By Messenger", the next lines contain name, address, phone
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+    const messengerIdx = lines.findIndex(l => l.includes('Deliver By Messenger'));
+    if (messengerIdx !== -1 && lines[messengerIdx + 1]) {
+      // Name is the line after "Deliver By Messenger"
+      data.recipientName = lines[messengerIdx + 1];
+      
+      // Collect address lines until we hit a phone number
+      let addrLines = [];
+      for (let i = messengerIdx + 2; i < lines.length; i++) {
+        const line = lines[i];
+        // Check if this looks like a phone number: starts with +, or has pattern like (XXX) XXX-XXXX
+        if (line.match(/^\+?\d[\d\s\-()]{7,}/)) {
+          data.phone = line;
+          break;
+        } else {
+          addrLines.push(line);
+        }
+      }
+      data.address = addrLines.join('\n');
+    }
+  }
+
+  // --- Extract Deliver By Messenger block ---
+  const deliverSection = text.match(/Deliver By Messenger(.*?)(?=\n\n|\n\s*\n|Items Ordered|$)/s);
+  if (deliverSection) {
+    const block = deliverSection[1];
+    data.shipVia = getMatch(/Ship Via\s*:\s*(.*)/, block);
+    data.shippingOn = getMatch(/Shipping On\s*:\s*(.*)/, block);
+    data.deliverBy = getMatch(/Deliver by\s*:\s*(.*)/, block);
+  }
+
+  // --- Extract Items ---
+  // Look for the items table - it starts with "Item #" and has pipe-separated rows
+  const itemsTable = text.match(/Item #\s*Description\s*Qty\s*Handling\s*Unit Price\s*Sub Total(.*?)(?=\n\s*\n\s*Items Subtotal|$)/s);
+  if (itemsTable) {
+    const tableContent = itemsTable[1];
+    // Split into lines and find rows with pipe separators
+    const lines = tableContent.split('\n').map(l => l.trim()).filter(l => l.includes('|'));
+    for (const line of lines) {
+      // Skip header lines or lines that look like section headers
+      if (line.includes('Request from warehouse')) continue;
+      if (line.includes('Measurement By Cartoon')) continue;
+      if (line.includes('Individual Box Measurement')) continue;
+      
+      const parts = line.split('|').map(s => s.trim());
+      // We need at least 6 parts: Item #, Description, Qty, Handling, Unit Price, Sub Total
+      if (parts.length >= 6) {
+        // Check if this actually looks like a product row (starts with a product code)
+        const itemNumber = parts[0];
+        // If the first part looks like a product code (alphanumeric with hyphens/underscores)
+        if (itemNumber.match(/^[A-Z0-9\-_]+$/i)) {
+          data.items.push({
+            itemNumber: itemNumber,
+            description: parts[1] || '',
+            qty: parts[2] || '',
+            handling: parts[3] || '',
+            unitPrice: parts[4] || '',
+            subTotal: parts[5] || ''
+          });
+        }
+      }
+    }
+  }
+
+  // --- Extract Delivery Fee ---
+  // First try "Actual Messenger Shipping Cost"
+  let deliveryFee = getMatch(/Actual Messenger Shipping Cost\s*:\s*\$([\d.]+)/, text);
+  if (deliveryFee && parseFloat(deliveryFee) > 0) {
+    data.deliveryFee = deliveryFee;
+  } else {
+    // Fallback to "Shipping & Handling"
+    const fallbackFee = getMatch(/Shipping & Handling\s*\(.*?\)\s*:\s*\$([\d.]+)/, text);
+    if (fallbackFee) data.deliveryFee = fallbackFee;
+  }
+
+  // --- Extract Order Total ---
+  data.orderTotal = getMatch(/Order Total\s*:\s*\$([\d.]+)/, text);
+
+  // --- If items are empty, try alternative extraction ---
+  if (data.items.length === 0) {
+    // Look for items in the "Items Ordered" section with a different pattern
+    const altItems = text.match(/Items Ordered.*?Item #\s*Description.*?(\d+[-\w]+\s*\|.*?)(?=\n\s*\n\s*Items Subtotal|$)/s);
+    if (altItems) {
+      const itemLines = altItems[1].split('\n').filter(l => l.includes('|'));
+      for (const line of itemLines) {
+        const parts = line.split('|').map(s => s.trim());
+        if (parts.length >= 6 && parts[0].match(/^[A-Z0-9\-_]+$/i)) {
+          data.items.push({
+            itemNumber: parts[0],
+            description: parts[1] || '',
+            qty: parts[2] || '',
+            handling: parts[3] || '',
+            unitPrice: parts[4] || '',
+            subTotal: parts[5] || ''
+          });
+        }
+      }
+    }
+  }
+
+  return data;
+}
 
     // ------------------------------------------------------------
     // UI LOGIC
