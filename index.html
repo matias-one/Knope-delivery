@@ -82,6 +82,11 @@
     <div class="w-full lg:w-5/12 p-6 bg-white border-r border-slate-200 no-print max-h-screen overflow-y-auto shadow-xl">
       <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
         <h1 class="text-xl font-bold text-slate-900 tracking-tight">Packing Slip Creator</h1>
+        <div class="p-4 bg-blue-50 border-b border-blue-100 mb-4 rounded-lg">
+          <button @click="handleClipboardPaste" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded shadow transition duration-150">
+            📋 Click to Paste ERP Data
+          </button>
+        </div>
         <button @click="triggerPrint" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm cursor-pointer">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
           Print Document
@@ -416,154 +421,78 @@
 
   </div>
 
-  <script>
-    const { createApp, ref, computed, onMounted } = Vue;
+<script>
+    const { createApp, ref, computed } = Vue;
 
     createApp({
       setup() {
-        // Shop Base Configurations Details
         const shop = ref({ name: 'Jamali Garden', email: 'orders@jamaligarden.com', domain: 'www.jamaligarden.com' });
         const shop_address = ref({ summary: '149 W 28th St, New York, NY 10001' });
-        
-        // Form Configuration controls
-        const fulfillmentMode = ref('shipping'); // options: shipping, delivery, pickup_nyc, pickup_nj
+        const fulfillmentMode = ref('shipping');
         const hasBillingAddress = ref(true);
         const includes_all_line_items_in_order = ref(true);
 
-        // Core Models matching template rules
         const order = ref({
           name: '#48209',
           po_number: '',
           created_at: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
           note: 'Please pack carefully, items are fragile glassware.',
-          metafields: {
-            checkoutblocks: {
-              pickup_person_full_name: '',
-              pickup_person_phone_number: ''
-            }
-          }
+          metafields: { checkoutblocks: { pickup_person_full_name: '', pickup_person_phone_number: '' } }
         });
 
-        const shipping_address = ref({
-          name: 'Jane Smith',
-          address1: '742 Evergreen Terrace',
-          city_province_zip: 'Springfield, OR 97477',
-          phone: ''
-        });
+        const shipping_address = ref({ name: 'Jane Smith', address1: '742 Evergreen Terrace', city_province_zip: 'Springfield, OR 97477', phone: '' });
+        const billing_address = ref({ name: 'Acme Corporation', company: 'Accounts Payable Dept', address1: '123 Corporate Blvd', address2: 'Suite 400', city_province_zip: 'New York, NY 10001', country: 'United States', phone: '' });
+        const delivery_method = ref({ instructions: '' });
 
-        const billing_address = ref({
-          name: 'Acme Corporation',
-          company: 'Accounts Payable Dept',
-          address1: '123 Corporate Blvd',
-          address2: 'Suite 400',
-          city_province_zip: 'New York, NY 10001',
-          country: 'United States',
-          phone: ''
-        });
-
-        const delivery_method = ref({
-          instructions: ''
-        });
-
-        // Dynamic reactive array storage
         const line_items_in_shipment = ref([
-          {
-            title: 'Serene Spaces Living Clear Glass Cylinder Vase',
-            variant_title: '6" D x 12" H',
-            sku: 'SSL-GLASS-04',
-            shipping_quantity: 4,
-            quantity: 4,
-            image: 'https://cdn.shopify.com/s/files/1/0597/6991/3413/files/cropped-cropped-logo-350x90.png?v=1720527155'
-          }
+          { title: 'Serene Spaces Living Clear Glass Cylinder Vase', variant_title: '6" D x 12" H', sku: 'SSL-GLASS-04', shipping_quantity: 4, quantity: 4, image: 'https://cdn.shopify.com/s/files/1/0597/6991/3413/files/cropped-cropped-logo-350x90.png?v=1720527155' }
         ]);
 
-        // Computed calculations modeling standard liquid conditionals
         const isPickup = computed(() => fulfillmentMode.value.startsWith('pickup_'));
-        
         const pickupLocationName = computed(() => {
           if (fulfillmentMode.value === 'pickup_nyc') return 'Jamali Garden Store - Manhattan NYC';
           if (fulfillmentMode.value === 'pickup_nj') return 'Jamali Garden NJ Warehouse Facility';
           return 'Pickup at Selected Location';
         });
 
-        // Mutation actions handling dynamic state variations
         const addLineItem = () => {
-          line_items_in_shipment.value.push({
-            title: 'New Product Item',
-            variant_title: '',
-            sku: 'SKU-' + Math.floor(Math.random() * 10000),
-            shipping_quantity: 1,
-            quantity: 1,
-            image: ''
-          });
+          line_items_in_shipment.value.push({ title: 'New Product Item', variant_title: '', sku: 'SKU-' + Math.floor(Math.random() * 10000), shipping_quantity: 1, quantity: 1, image: '' });
         };
+        const removeLineItem = (index) => { line_items_in_shipment.value.splice(index, 1); };
+        const triggerPrint = () => { window.print(); };
 
-        const removeLineItem = (index) => {
-          line_items_in_shipment.value.splice(index, 1);
-        };
-
-        const triggerPrint = () => {
-          window.print();
-        };
-
-        // --- AUTOMATION MEMORY STORAGE INTEGRATION ---
-        onMounted(() => {
-          // Check across sharing contexts for saved payload
-          const sharedDataStr = localStorage.getItem('pendingJamaliOrder');
-          
-          if (sharedDataStr) {
-            try {
-              const payload = JSON.parse(sharedDataStr);
-              
-              // Apply metrics safely
-              if (payload.shopifyOrder) {
-                order.value.name = '#' + payload.shopifyOrder;
-              }
-              if (payload.customer) {
-                shipping_address.value.name = payload.customer;
-              }
-              
-              if (payload.items && payload.items.length > 0) {
-                // Clear placeholder vases instantly
-                line_items_in_shipment.value = [];
-                
-                payload.items.forEach(product => {
-                  line_items_in_shipment.value.push({
-                    title: product.name || 'Extracted Product Item',
-                    variant_title: '',
-                    sku: product.sku || 'N/A',
-                    shipping_quantity: parseInt(product.qty) || 1,
-                    quantity: parseInt(product.qty) || 1,
-                    image: ''
-                  });
+        // --- NEW PASTE FUNCTION ---
+        const handleClipboardPaste = async () => {
+          try {
+            const text = await navigator.clipboard.readText();
+            const payload = JSON.parse(text);
+            
+            if (payload.shopifyOrder) order.value.name = '#' + payload.shopifyOrder;
+            if (payload.customer) shipping_address.value.name = payload.customer;
+            
+            if (payload.items && payload.items.length > 0) {
+              line_items_in_shipment.value = [];
+              payload.items.forEach(product => {
+                line_items_in_shipment.value.push({
+                  title: product.name || 'Extracted Product Item',
+                  variant_title: '',
+                  sku: product.sku || 'N/A',
+                  shipping_quantity: parseInt(product.qty) || 1,
+                  quantity: parseInt(product.qty) || 1,
+                  image: ''
                 });
-              }
-              
-              // Clear extraction memory to maintain a clean queue slate
-              localStorage.removeItem('pendingJamaliOrder');
-              
-            } catch (err) {
-              console.error("Failed parsing storage payload:", err);
+              });
             }
+          } catch (err) {
+            alert("Please make sure you clicked the Chrome Extension button on your ERP page first!");
+            console.error(err);
           }
-        });
+        };
 
         return {
-          shop,
-          shop_address,
-          fulfillmentMode,
-          hasBillingAddress,
-          includes_all_line_items_in_order,
-          order,
-          shipping_address,
-          billing_address,
-          delivery_method,
-          line_items_in_shipment,
-          isPickup,
-          pickupLocationName,
-          addLineItem,
-          removeLineItem,
-          triggerPrint
+          shop, shop_address, fulfillmentMode, hasBillingAddress, includes_all_line_items_in_order,
+          order, shipping_address, billing_address, delivery_method, line_items_in_shipment,
+          isPickup, pickupLocationName, addLineItem, removeLineItem, triggerPrint, handleClipboardPaste
         };
       }
     }).mount('#app');
