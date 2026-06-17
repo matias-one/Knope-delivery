@@ -433,13 +433,13 @@
         // Core Models matching template rules
         const order = ref({
           name: '#48209',
-          po_number: '98754',
+          po_number: '',
           created_at: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
           note: 'Please pack carefully, items are fragile glassware.',
           metafields: {
             checkoutblocks: {
-              pickup_person_full_name: 'John Doe',
-              pickup_person_phone_number: '(555) 019-2834'
+              pickup_person_full_name: '',
+              pickup_person_phone_number: ''
             }
           }
         });
@@ -448,7 +448,7 @@
           name: 'Jane Smith',
           address1: '742 Evergreen Terrace',
           city_province_zip: 'Springfield, OR 97477',
-          phone: '(555) 867-5309'
+          phone: ''
         });
 
         const billing_address = ref({
@@ -458,11 +458,11 @@
           address2: 'Suite 400',
           city_province_zip: 'New York, NY 10001',
           country: 'United States',
-          phone: '(212) 555-0100'
+          phone: ''
         });
 
         const delivery_method = ref({
-          instructions: 'Leave at back loading dock behind building gate code #4412.'
+          instructions: ''
         });
 
         // Dynamic reactive array storage
@@ -506,46 +506,44 @@
           window.print();
         };
 
-        // --- AUTOMATION LINK-READER ADDED HERE ---
-        // Runs immediately when the page finishes initializing inside your browser
+        // --- AUTOMATION MEMORY STORAGE INTEGRATION ---
         onMounted(() => {
-          const urlParams = new URLSearchParams(window.location.search);
+          // Check across sharing contexts for saved payload
+          const sharedDataStr = localStorage.getItem('pendingJamaliOrder');
           
-          // 1. Process Order IDs (Prioritize Shopify reference, fallback to ERP Internal)
-          if (urlParams.has('shopifyOrder') && urlParams.get('shopifyOrder')) {
-            order.value.name = '#' + urlParams.get('shopifyOrder');
-          } else if (urlParams.has('erpOrder') && urlParams.get('erpOrder')) {
-            order.value.name = 'ERP-' + urlParams.get('erpOrder');
-          }
-
-          // 2. Map and append Customer Name to Shipping Block
-          if (urlParams.has('customer')) {
-            shipping_address.value.name = decodeURIComponent(urlParams.get('customer'));
-          }
-
-          // 3. Wipe defaults and clear out the item tables to load incoming ERP products
-          if (urlParams.has('items')) {
+          if (sharedDataStr) {
             try {
-              const rawItems = JSON.parse(decodeURIComponent(urlParams.get('items')));
+              const payload = JSON.parse(sharedDataStr);
               
-              if (rawItems && rawItems.length > 0) {
-                // Clear out placeholder setup values
+              // Apply metrics safely
+              if (payload.shopifyOrder) {
+                order.value.name = '#' + payload.shopifyOrder;
+              }
+              if (payload.customer) {
+                shipping_address.value.name = payload.customer;
+              }
+              
+              if (payload.items && payload.items.length > 0) {
+                // Clear placeholder vases instantly
                 line_items_in_shipment.value = [];
                 
-                // Inject each individual line item item securely 
-                rawItems.forEach(item => {
+                payload.items.forEach(product => {
                   line_items_in_shipment.value.push({
-                    title: item.name || 'Extracted Product Description',
+                    title: product.name || 'Extracted Product Item',
                     variant_title: '',
-                    sku: item.sku || 'N/A',
-                    shipping_quantity: parseInt(item.qty) || 1,
-                    quantity: parseInt(item.qty) || 1,
-                    image: '' // Fallback empty canvas
+                    sku: product.sku || 'N/A',
+                    shipping_quantity: parseInt(product.qty) || 1,
+                    quantity: parseInt(product.qty) || 1,
+                    image: ''
                   });
                 });
               }
-            } catch (e) {
-              console.error("Error reading encoded incoming ERP items stream:", e);
+              
+              // Clear extraction memory to maintain a clean queue slate
+              localStorage.removeItem('pendingJamaliOrder');
+              
+            } catch (err) {
+              console.error("Failed parsing storage payload:", err);
             }
           }
         });
