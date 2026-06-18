@@ -461,33 +461,68 @@
         const removeLineItem = (index) => { line_items_in_shipment.value.splice(index, 1); };
         const triggerPrint = () => { window.print(); };
 
-        // --- NEW PASTE FUNCTION ---
-        const handleClipboardPaste = async () => {
-          try {
-            const text = await navigator.clipboard.readText();
-            const payload = JSON.parse(text);
-            
-            if (payload.shopifyOrder) order.value.name = '#' + payload.shopifyOrder;
-            if (payload.customer) shipping_address.value.name = payload.customer;
-            
-            if (payload.items && payload.items.length > 0) {
-              line_items_in_shipment.value = [];
-              payload.items.forEach(product => {
-                line_items_in_shipment.value.push({
-                  title: product.name || 'Extracted Product Item',
-                  variant_title: '',
-                  sku: product.sku || 'N/A',
-                  shipping_quantity: parseInt(product.qty) || 1,
-                  quantity: parseInt(product.qty) || 1,
-                  image: ''
-                });
-              });
-            }
-          } catch (err) {
-            alert("Please make sure you clicked the Chrome Extension button on your ERP page first!");
-            console.error(err);
-          }
-        };
+// --- UPDATED PASTE FUNCTION (ERP → Slip Generator) ---
+const handleClipboardPaste = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    const erp = JSON.parse(text);
+
+    // --- ORDER INFO ---
+    if (erp.orderId) order.value.name = '#' + erp.orderId;
+    if (erp.orderDate) order.value.created_at = erp.orderDate;
+
+    // --- SHIPPING ADDRESS ---
+    if (erp.shipTo) {
+      shipping_address.value.name = erp.shipTo.name || '';
+      shipping_address.value.address1 = [
+        erp.shipTo.street1 || '',
+        erp.shipTo.street2 || ''
+      ].filter(Boolean).join(', ');
+      shipping_address.value.city_province_zip = erp.shipTo.cityStateZip || '';
+      shipping_address.value.phone = erp.shipTo.phone || '';
+    }
+
+    // --- BILLING ADDRESS ---
+    if (erp.billing) {
+      hasBillingAddress.value = true;
+      billing_address.value.name = erp.billing.name || '';
+      billing_address.value.company = erp.billing.company || '';
+      billing_address.value.address1 = erp.billing.street1 || '';
+      billing_address.value.address2 = erp.billing.street2 || '';
+      billing_address.value.city_province_zip = erp.billing.cityStateZip || '';
+      billing_address.value.country = erp.billing.country || 'United States';
+      billing_address.value.phone = erp.billing.phone || '';
+    }
+
+    // --- DELIVERY MODE ---
+    if (erp.deliveryMethod) {
+      fulfillmentMode.value = 'delivery';
+      delivery_method.value.instructions = erp.deliveryMethod;
+    }
+
+    // --- LINE ITEMS ---
+    if (erp.items && erp.items.length > 0) {
+      line_items_in_shipment.value = erp.items.map(item => ({
+        title: item.name || 'ERP Item',
+        variant_title: item.unit || '',
+        sku: item.sku || '',
+        shipping_quantity: item.qty || 1,
+        quantity: item.qty || 1,
+        image: ''
+      }));
+    }
+
+    // --- NOTES (OPTIONAL) ---
+    if (erp.packageBreakdown) {
+      order.value.note = `Package Breakdown: ${erp.packageBreakdown}`;
+    }
+
+  } catch (err) {
+    alert("Invalid ERP data. Make sure you clicked the Chrome Extension button first.");
+    console.error(err);
+  }
+};
+
 
         return {
           shop, shop_address, fulfillmentMode, hasBillingAddress, includes_all_line_items_in_order,
