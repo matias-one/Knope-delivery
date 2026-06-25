@@ -617,11 +617,11 @@ function renderReceipt() {
   const displayDelivery = formatPhoneNumbersInText(state.fullDeliveryAddress || deliveryAddress || 'No address');
   const billToDisplay = formatPhoneNumbersInText(billTo ? billTo.replace(/\n/g, '<br>') : 'No billing address');
 
-  const itemsHtml = items.map(it => `
+const itemsHtml = items.map(it => `
     <tr>
       <td class="item-qty">${it.qty}</td>
-      <td class="item-desc">${shortenDescription(it.item)}</td>
       <td class="item-sku">${it.sku}</td>
+      <td class="item-desc">${shortenDescription(it.item)}</td>
       <td class="item-unit">${it.unit}</td>
     </tr>
   `).join('');
@@ -667,9 +667,14 @@ function renderReceipt() {
       <div class="items-section">
 
         <table class="items-table">
-          <thead>
-            <tr><th>Qty</th><th>Item Name</th><th>SKU</th><th>Unit</th></tr>
-          </thead>
+<thead>
+  <tr>
+    <th>Qty</th>
+    <th>SKU</th>
+    <th>Item Name</th>
+    <th>Unit</th>
+  </tr>
+</thead>
           <tbody>
             ${itemsHtml || '<tr><td colspan="4" class="text-center">No items</td></tr>'}
           </tbody>
