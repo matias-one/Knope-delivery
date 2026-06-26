@@ -1,0 +1,22 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f8fafc;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background-color: #0f172a;
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    box-sizing: border-box;
+    border-right: 1px solid #1e293b;
+}
+
+/* ...and the rest of your CSS */
