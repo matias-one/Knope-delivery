@@ -137,6 +137,28 @@ if (localStorage.getItem("apes_logged_in") !== "yes") {
 }
 </script>
 
+<div class="user-bar">
+    Logged in as: <strong id="apes-user"></strong>
+    <button onclick="logout()" class="leave-match">Leave Match</button>
+</div>
+
+<script>
+document.getElementById("apes-user").textContent = localStorage.getItem("apes_username");
+
+function logout() {
+    localStorage.removeItem("apes_logged_in");
+    localStorage.removeItem("apes_username");
+    window.location.href = "login.html";
+}
+</script>
+
+
+<script>
+if (localStorage.getItem("apes_logged_in") !== "yes") {
+    window.location.href = "login.html";
+}
+</script>
+
     <div class="sidebar">
         <div class="brand-section">
             <img src="logo.png" alt="📦" class="brand-logo" onerror="this.style.display='none'">
