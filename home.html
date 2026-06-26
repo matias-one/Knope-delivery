@@ -1,0 +1,40 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>APES | Home</title> <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"> <style> body { margin: 0; font-family: 'Poppins', sans-serif; background-color: #f8fafc; color: #0f172a; }
+
+    /* Header */     header {         display: flex;         justify-content: space-between;         align-items: center;         padding: 20px 40px;         background-color: #ffffff;         border-bottom: 1px solid #e2e8f0;         position: sticky;         top: 0;         z-index: 10;     }      .brand {         display: flex;         align-items: center;         gap: 12px;     }      .brand-logo {         width: 40px;         height: 40px;         object-fit: contain;     }      .brand-name {         font-size: 22px;         font-weight: 700;         letter-spacing: -0.5px;     }      .login-btn {         padding: 10px 20px;         background-color: #4f46e5;         color: white;         border-radius: 8px;         text-decoration: none;         font-weight: 600;         transition: 0.2s ease;     }      .login-btn:hover {         background-color: #4338ca;     }      /* Hero Section */     .hero {         text-align: center;         padding: 100px 20px;     }      .hero h1 {         font-size: 42px;         font-weight: 900;         margin-bottom: 16px;         color: #1e293b;     }      .hero p {         font-size: 16px;         color: #475569;         max-width: 600px;         margin: 0 auto 30px;     }      .hero-img {         width: 90%;         max-width: 900px;         border-radius: 16px;         box-shadow: 0 8px 30px rgba(0,0,0,0.08);         margin-top: 40px;     }      /* Features */     .features {         display: flex;         justify-content: center;         gap: 40px;         padding: 80px 20px;         flex-wrap: wrap;     }      .feature-card {         background: white;         padding: 30px;         border-radius: 16px;         box-shadow: 0 4px 20px rgba(0,0,0,0.05);         width: 280px;         text-align: center;     }      .feature-card h3 {         font-size: 20px;         margin-bottom: 10px;         color: #1e293b;     }      .feature-card p {         font-size: 14px;         color: #64748b;     }      /* Footer */     footer {         text-align: center;         padding: 20px;         font-size: 12px;         color: #475569;         border-top: 1px solid #e2e8f0;         margin-top: 40px;     }      footer span {         color: #d97706;         font-weight: 700;     } </style>
+
+</head> <body>
+
+<header>
+    <div class="brand">
+        <img src="logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+        <div class="brand-name">APES | PackRoute</div>
+    </div>
+    <a href="login.html" class="login-btn">Login</a>
+</header>
+
+<section class="hero">
+    <h1>Welcome to APES PackRoute</h1>
+    <p>Your all‑in‑one logistics and workflow hub. Manage deliveries, print slips, organize cargo, and explore tools — all in one clean portal.</p>
+    <img src="portal-preview.png" alt="Portal Preview" class="hero-img" onerror="this.style.display='none'">
+</section>
+
+<section class="features">
+    <div class="feature-card">
+        <h3>📦 Delivery Tools</h3>
+        <p>Generate delivery slips and organize shipments with ease.</p>
+    </div>
+    <div class="feature-card">
+        <h3>🏷️ Label Printing</h3>
+        <p>Thermal label tools designed for fast, accurate printing.</p>
+    </div>
+    <div class="feature-card">
+        <h3>🛠️ Custom Utilities</h3>
+        <p>Internal tools built for speed, clarity, and workflow efficiency.</p>
+    </div>
+</section>
+
+<footer>
+    Built with ❤️ by <span>MONE</span>
+</footer>
+
+</body> </html>
