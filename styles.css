@@ -118,3 +118,21 @@ body {
     max-width: 500px;
     margin-top: 20px;
 }
+.topbar {
+    position: fixed;
+    top: 0;
+    left: 260px; /* width of sidebar */
+    height: 60px;
+    width: calc(100% - 260px);
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 20px;
+    box-sizing: border-box;
+    z-index: 10;
+}
+.main-content {
+    margin-top: 60px;
+}
