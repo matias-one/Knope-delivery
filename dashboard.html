@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APES Portal</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
 
+    <!-- Shared Styles -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -17,6 +20,9 @@ if (localStorage.getItem("apes_logged_in") !== "yes") {
     window.location.href = "login.html";
 }
 </script>
+
+<!-- TOPBAR (loaded dynamically) -->
+<div id="topbar"></div>
 
 <!-- SIDEBAR -->
 <div class="sidebar">
@@ -36,11 +42,6 @@ if (localStorage.getItem("apes_logged_in") !== "yes") {
 <!-- MAIN CONTENT -->
 <div class="main-content">
 
-    <div class="user-bar">
-        Logged in as: <strong id="apes-user"></strong>
-        <button onclick="logout()" class="leave-match">Leave Match</button>
-    </div>
-
     <div class="welcome-card">
         <h1>Welcome to the Logistics Hub</h1>
         <p>Select a tool from the sidebar menu to quickly process orders, print delivery configurations, or manage cargo configurations.</p>
@@ -48,8 +49,24 @@ if (localStorage.getItem("apes_logged_in") !== "yes") {
 
 </div>
 
+<!-- LOAD TOPBAR COMPONENT -->
 <script>
-document.getElementById("apes-user").textContent = localStorage.getItem("apes_username");
+fetch("topbar.html")
+  .then(res => res.text())
+  .then(html => {
+      document.getElementById("topbar").innerHTML = html;
+
+      // Fill user info
+      const username = localStorage.getItem("apes_username");
+      document.getElementById("apes-user").textContent = username;
+      document.getElementById("dd-username").textContent = username;
+      document.getElementById("dd-email").textContent = username + "@apes.com";
+  });
+
+function toggleMenu() {
+    const menu = document.getElementById("user-dropdown");
+    menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+}
 
 function logout() {
     localStorage.removeItem("apes_logged_in");
