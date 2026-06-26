@@ -283,6 +283,14 @@ body { background-color:#f7f9fb; font-family:Inter, sans-serif; min-height:100vh
 </style>
 </head>
 <body>
+<script>
+if (localStorage.getItem("apes_logged_in") !== "yes") {
+    window.location.href = "login.html";
+}
+</script>
+
+<!-- slip page content -->
+
 
     <div class="sidebar">
         <div class="brand-section">
