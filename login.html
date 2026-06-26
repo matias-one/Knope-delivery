@@ -107,10 +107,11 @@ async function login() {
 
     const data = await res.json();
 
-    if (data.status === "OK") {
-        localStorage.setItem("apes_logged_in", "yes");
-        window.location.href = "dashboard.html";
-    } else {
+if (data.status === "OK") {
+    localStorage.setItem("apes_logged_in", "yes");
+    localStorage.setItem("apes_username", user); // ← ADD THIS
+    window.location.href = "dashboard.html";
+}else {
         alert("Invalid credentials");
     }
 }
