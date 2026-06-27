@@ -201,6 +201,40 @@ body { background-color:#f7f9fb; font-family:Inter, sans-serif; min-height:100vh
         padding: 0 !important;
     }
 }
+/* ----- REMOVE ALL PRINT MARGINS & PADDING ----- */
+@media print {
+    @page {
+        margin: 0 !important;
+    }
+
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .receipt-container {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    #receipt-content {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}
+@media print {
+    .receipt-container {
+        padding: 0.15in 0.2in !important;
+    }
+}
+
 
 </style>
 </head>
