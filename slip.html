@@ -189,6 +189,19 @@ body { background-color:#f7f9fb; font-family:Inter, sans-serif; min-height:100vh
   border-top: 1px solid #ddd; 
   padding-top: 0.8rem; 
 }
+@media print {
+    .sidebar,
+    .topbar,
+    #footer {
+        display: none !important;
+    }
+
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+
 </style>
 </head>
 <body>
