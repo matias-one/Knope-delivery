@@ -1,40 +1,81 @@
+/* ============================================================
+   APES PORTAL — GLOBAL STYLESHEET
+   Clean, organized, production-ready CSS with notes
+   ============================================================ */
+
+
+/* ============================================================
+   1. GLOBAL RESET & BASE
+   ------------------------------------------------------------
+   - Sets the base font, background, and layout foundation.
+   - No flex on body (topbar + sidebar handle layout now).
+   ============================================================ */
 body {
     font-family: 'Poppins', sans-serif;
     background-color: #f8fafc;
     margin: 0;
     padding: 0;
-    display: flex;
     min-height: 100vh;
 }
 
-/* Sidebar */
-.sidebar {
-    width: 260px;
-    background-color: #0f172a;
-    color: #f1f5f9;
+
+
+/* ============================================================
+   2. TOPBAR (FULL WIDTH)
+   ------------------------------------------------------------
+   - Fixed at the top.
+   - Holds brand + user menu.
+   - Appears on every page.
+   ============================================================ */
+.topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 60px;
+    width: 100%;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
     display: flex;
-    flex-direction: column;
-    padding: 24px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
     box-sizing: border-box;
-    border-right: 1px solid #1e293b;
+    z-index: 10;
 }
 
-.brand-section {
+.topbar-left {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 40px;
 }
 
 .brand-logo {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
+    height: 32px;
 }
 
 .brand-name {
-    font-size: 20px;
     font-weight: 700;
+    font-size: 16px;
+}
+
+
+
+/* ============================================================
+   3. SIDEBAR (LEFT COLUMN)
+   ------------------------------------------------------------
+   - Fixed under the topbar.
+   - Navigation for all tools.
+   ============================================================ */
+.sidebar {
+    position: fixed;
+    top: 60px; /* below topbar */
+    left: 0;
+    width: 260px;
+    height: calc(100vh - 60px);
+    background: #f8fafc;
+    border-right: 1px solid #e2e8f0;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .menu-title {
@@ -49,7 +90,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    flex-grow: 1;
 }
 
 .nav-item {
@@ -77,47 +117,32 @@ body {
     pointer-events: none;
 }
 
-/* Main content */
+
+
+/* ============================================================
+   4. MAIN CONTENT AREA
+   ------------------------------------------------------------
+   - Automatically positioned under topbar and beside sidebar.
+   - Centers content by default.
+   ============================================================ */
 .main-content {
-    flex-grow: 1;
+    margin-top: 60px;      /* below topbar */
+    margin-left: 260px;    /* beside sidebar */
     padding: 40px;
     box-sizing: border-box;
-}
 
-.main-content {
-    margin-top: 60px; /* keep this */
     display: flex;
-    justify-content: center;
-    align-items: center;
     flex-direction: column;
-}
-
-
-.user-bar {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    font-size: 14px;
-    color: #334155;
 }
 
-.leave-match {
-    background: #ef4444;
-    color: white;
-    padding: 10px 18px;
-    border-radius: 8px;
-    border: none;
-    font-weight: 700;
-    cursor: pointer;
-    transition: 0.2s;
-}
 
-.leave-match:hover {
-    background: #dc2626;
-    transform: scale(1.05);
-}
 
+/* ============================================================
+   5. WELCOME CARD (Dashboard)
+   ------------------------------------------------------------
+   - Clean, centered card for the dashboard intro.
+   ============================================================ */
 .welcome-card {
     background: white;
     padding: 40px;
@@ -127,26 +152,15 @@ body {
     max-width: 500px;
     margin-top: 20px;
 }
-.topbar {
-    position: fixed;
-    top: 0;
-    left: 260px; /* width of sidebar */
-    height: 60px;
-    width: calc(100% - 260px);
-    background: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    padding: 0 20px;
-    box-sizing: border-box;
-    z-index: 10;
-}
-.main-content {
-    margin-top: 60px;
-}
 
-/* USER MENU FIX */
+
+
+/* ============================================================
+   6. USER MENU (TOPBAR DROPDOWN)
+   ------------------------------------------------------------
+   - Username + ▼
+   - Dropdown with email + actions
+   ============================================================ */
 .user-menu {
     position: relative;
     display: flex;
@@ -163,7 +177,7 @@ body {
     color: #334155;
 }
 
-/* DROPDOWN */
+/* Dropdown container */
 .user-dropdown {
     position: absolute;
     top: 28px;
@@ -180,7 +194,7 @@ body {
     white-space: normal;
 }
 
-/* WHEN OPEN */
+/* When menu is open */
 .user-menu.open .user-dropdown {
     display: flex;
 }
@@ -194,4 +208,33 @@ body {
 
 .user-dropdown a:hover {
     color: #4f46e5;
+}
+
+
+
+/* ============================================================
+   7. FOOTER (BOTTOM OF PAGE)
+   ------------------------------------------------------------
+   - Small, clean, professional footer.
+   ============================================================ */
+.footer {
+    width: 100%;
+    padding: 10px 20px;
+    font-size: 12px;
+    color: #6b7280;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 40px;
+}
+
+.footer-right a {
+    margin-right: 15px;
+    color: #6b7280;
+    text-decoration: none;
+}
+
+.footer-right a:hover {
+    text-decoration: underline;
 }
