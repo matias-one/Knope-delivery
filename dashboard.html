@@ -34,7 +34,7 @@ if (localStorage.getItem("apes_logged_in") !== "yes") {
     <div class="menu-title">Applications</div>
     <nav class="nav-links">
         <a href="./dashboard.html" class="nav-item active">🏠 Dashboard</a>
-        <a href="./slip.html" class="nav-item">📄 Delivery Slips</a>
+        <a href="./slip.html" class="nav-item">📄 Delivery Slip</a>
         <a href="#" class="nav-item disabled">🏷️ Thermal Labels</a>
     </nav>
 </div>
@@ -64,9 +64,9 @@ fetch("topbar.html")
   });
 
 function toggleMenu() {
-    const menu = document.getElementById("user-dropdown");
-    menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+    document.querySelector(".user-menu").classList.toggle("open");
 }
+
 
 function logout() {
     localStorage.removeItem("apes_logged_in");

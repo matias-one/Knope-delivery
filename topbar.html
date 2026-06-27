@@ -1,13 +1,19 @@
 <div class="topbar">
+
     <div class="user-menu" onclick="toggleMenu()">
-        <span id="apes-user"></span> ▼
+
+        <div class="user-label">
+            <span id="apes-user"></span> ▼
+        </div>
+
+        <div class="user-dropdown" id="user-dropdown">
+            <div class="dropdown-username" id="dd-username"></div>
+            <div class="dropdown-email" id="dd-email"></div>
+            <hr>
+            <a class="dropdown-item" href="#">Manage Account</a>
+            <a class="dropdown-item" onclick="logout()">Leave Match</a>
+        </div>
+
     </div>
 
-    <div class="dropdown" id="user-dropdown">
-        <div class="dropdown-username" id="dd-username"></div>
-        <div class="dropdown-email" id="dd-email"></div>
-        <hr>
-        <a class="dropdown-item" href="#">Manage Account</a>
-        <a class="dropdown-item" onclick="logout()">Leave Match</a>
-    </div>
 </div>
