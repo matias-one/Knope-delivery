@@ -21,23 +21,9 @@ if (localStorage.getItem("apes_logged_in") !== "yes") {
 }
 </script>
 
-<!-- TOPBAR (loaded dynamically) -->
+<!-- COMPONENTS -->
 <div id="topbar"></div>
-
-<!-- SIDEBAR -->
-<div class="sidebar">
-    <div class="brand-section">
-        <img src="logo.png" class="brand-logo" onerror="this.style.display='none'">
-        <div class="brand-name">APES | PackRoute</div>
-    </div>
-
-    <div class="menu-title">Applications</div>
-    <nav class="nav-links">
-        <a href="./dashboard.html" class="nav-item active">🏠 Dashboard</a>
-        <a href="./slip.html" class="nav-item">📄 Delivery Slip</a>
-        <a href="#" class="nav-item disabled">🏷️ Thermal Labels</a>
-    </nav>
-</div>
+<div id="sidebar"></div>
 
 <!-- MAIN CONTENT -->
 <div class="main-content">
@@ -47,33 +33,33 @@ if (localStorage.getItem("apes_logged_in") !== "yes") {
         <p>Select a tool from the sidebar menu to quickly process orders, print delivery configurations, or manage cargo configurations.</p>
     </div>
 
+    <div id="footer"></div>
 </div>
 
-<!-- LOAD TOPBAR COMPONENT -->
+<!-- LOAD COMPONENTS -->
 <script>
 fetch("topbar.html")
   .then(res => res.text())
   .then(html => {
       document.getElementById("topbar").innerHTML = html;
 
-      // Fill user info
       const username = localStorage.getItem("apes_username");
       document.getElementById("apes-user").textContent = username;
       document.getElementById("dd-username").textContent = username;
       document.getElementById("dd-email").textContent = username + "@apes.com";
   });
 
-function toggleMenu() {
-    document.querySelector(".user-menu").classList.toggle("open");
-}
+fetch("sidebar.html")
+  .then(res => res.text())
+  .then(html => document.getElementById("sidebar").innerHTML = html);
 
-
-function logout() {
-    localStorage.removeItem("apes_logged_in");
-    localStorage.removeItem("apes_username");
-    window.location.href = "login.html";
-}
+fetch("footer.html")
+  .then(res => res.text())
+  .then(html => document.getElementById("footer").innerHTML = html);
 </script>
+
+<!-- SHARED LOGIC -->
+<script src="shared.js"></script>
 
 </body>
 </html>
