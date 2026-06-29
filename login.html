@@ -1,125 +1,224 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>APES | Login</title> <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"> <style> body { margin: 0; font-family: 'Poppins', sans-serif; background-color: #f1f5f9; display: flex; justify-content: center; align-items: center; height: 100vh; }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APES | Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f1f5f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-    .login-card {
-        background: white;
-        padding: 40px;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        width: 100%;
-        max-width: 380px;
-        text-align: center;
-    }
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
 
-    .brand-logo {
-        width: 60px;
-        height: 60px;
-        object-fit: contain;
-        margin-bottom: 10px;
-    }
+        /* Shake animation for incorrect credentials */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
 
-    h2 {
-        margin: 0 0 20px;
-        font-size: 24px;
-        color: #1e293b;
-        font-weight: 700;
-    }
+        .shake-card {
+            animation: shake 0.2s ease-in-out 0s 2;
+        }
 
-    .input-group {
-        text-align: left;
-        margin-bottom: 20px;
-    }
+        .brand-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
 
-    label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #475569;
-    }
+        h2 {
+            margin: 0 0 20px;
+            font-size: 24px;
+            color: #1e293b;
+            font-weight: 700;
+        }
 
-    input {
-        width: 100%;
-        padding: 12px;
-        margin-top: 6px;
-        border-radius: 8px;
-        border: 1px solid #cbd5e1;
-        font-size: 14px;
-        box-sizing: border-box;
-    }
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
 
-    .login-btn {
-        width: 100%;
-        padding: 12px;
-        background-color: #4f46e5;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.2s ease;
-    }
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+        }
 
-    .login-btn:hover {
-        background-color: #4338ca;
-    }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 6px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease;
+        }
 
-    .back-link {
-        display: block;
-        margin-top: 20px;
-        font-size: 13px;
-        color: #64748b;
-        text-decoration: none;
-    }
+        input:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
 
-    .back-link:hover {
-        color: #334155;
-    }
-</style>
+        /* Modern inline error alert box */
+        .error-message {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: left;
+            display: none; /* Hidden by default */
+            line-height: 1.4;
+        }
 
-</head> <body>
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .login-btn:hover {
+            background-color: #4338ca;
+        }
+
+        .login-btn:disabled {
+            background-color: #818cf8;
+            cursor: not-allowed;
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #64748b;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
 
 <div class="login-card">
     <img src="logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
     <h2>Sign in to APES</h2>
 
-    <div class="input-group">
-        <label for="username">Username</label>
-        <input type="text" id="username" placeholder="Enter username">
-    </div>
+    <div id="error-box" class="error-message"></div>
 
-    <div class="input-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" placeholder="Enter password">
-    </div>
+    <form id="loginForm" onsubmit="event.preventDefault(); login();">
+        <div class="input-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="Enter username" required>
+        </div>
 
+        <div class="input-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter password" required>
+        </div>
 
-    
-    <button class="login-btn" onclick="login()">Login</button>
+        <button type="submit" class="login-btn">Login</button>
+    </form>
+
+    <a href="index.html" class="back-link">← Back to Home</a>
+</div>
 
 <script>
 async function login() {
-    const user = document.getElementById("username").value;
+    const user = document.getElementById("username").value.trim();
     const pass = document.getElementById("password").value;
+    const errorBox = document.getElementById("error-box");
+    const btn = document.querySelector(".login-btn");
 
-    const res = await fetch("https://script.google.com/macros/s/AKfycbw3zbU87zXfhXTVL0e33ppyYYSfG_PPWH5Z6Pv8hRR6JAivsxWOV_8glIsxttU_X3KqPg/exec", {
-        method: "POST",
-        body: JSON.stringify({ username: user, password: pass })
-    });
+    if (!user || !pass) return;
 
-    const data = await res.json();
+    // Reset UI state
+    errorBox.style.display = "none";
+    errorBox.innerHTML = "";
+    btn.disabled = true;
+    btn.innerText = "Logging in...";
 
-if (data.status === "OK") {
-    localStorage.setItem("apes_logged_in", "yes");
-    localStorage.setItem("apes_username", user); // ← ADD THIS
-    window.location.href = "dashboard.html";
-}else {
-        alert("Invalid credentials");
+    try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbw3zbU87zXfhXTVL0e33ppyYYSfG_PPWH5Z6Pv8hRR6JAivsxWOV_8glIsxttU_X3KqPg/exec", {
+            method: "POST",
+            mode: "cors", 
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+
+        const data = await res.json();
+
+        if (data.status === "OK") {
+            localStorage.setItem("apes_logged_in", "yes");
+            localStorage.setItem("apes_username", user);
+            window.location.href = "dashboard.html";
+        } else {
+            // Trigger standard secure error pattern
+            showError("Invalid credentials");
+        }
+
+    } catch (err) {
+        console.error(err);
+        showError("Network error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Login";
     }
+}
+
+function showError(type) {
+    const errorBox = document.getElementById("error-box");
+    const card = document.querySelector(".login-card");
+
+    // Format the error text based on what happened
+    if (type === "Invalid credentials") {
+        errorBox.innerHTML = `<strong>Invalid credentials.</strong> Please check your username and password and try again.`;
+    } else {
+        errorBox.innerHTML = `<strong>Connection error.</strong> Unable to reach the server. Please check your internet connection.`;
+    }
+    
+    // Show the box
+    errorBox.style.display = "block";
+
+    // Trigger the high-end shake effect
+    card.classList.add("shake-card");
+    setTimeout(() => {
+        card.classList.remove("shake-card");
+    }, 400); // Animation lasts 400ms total
 }
 </script>
 
-
-
-    <a href="home.html" class="back-link">← Back to Home</a>
-</div>
-
-</body> </html>
+</body>
+</html>
